@@ -124,7 +124,7 @@ export default function RemnantbornLanding() {
                 Community
               </a>
               <Link
-                href="#login"
+                href="/login"
                 className="font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white"
               >
                 Login
@@ -132,6 +132,7 @@ export default function RemnantbornLanding() {
               <button
                 className="text-[#d4c5a9] transition-colors hover:text-white"
                 aria-label="User profile"
+                onClick={() => window.location.href = "/login"}
               >
                 <User size={20} />
               </button>
@@ -141,6 +142,7 @@ export default function RemnantbornLanding() {
             <button
               className="text-[#d4c5a9] transition-colors hover:text-white md:hidden"
               aria-label="User profile"
+              onClick={() => window.location.href = "/login"}
             >
               <User size={20} />
             </button>
@@ -171,7 +173,7 @@ export default function RemnantbornLanding() {
                 Community
               </Link>
               <Link
-                href="#login"
+                href="/login"
                 className="font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -270,6 +272,69 @@ export default function RemnantbornLanding() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Community Section + Footer */}
+      <section id="community" className="relative w-full overflow-hidden border-t border-[#2f2a1e]">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 h-full w-full object-cover"
+        >
+          <source src="/videos/hero-bg.mp4" type="video/mp4" />
+        </video>
+
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(5,12,13,0.95)_0%,rgba(3,11,13,0.9)_45%,rgba(13,20,13,0.4)_100%)]" />
+
+        <div className="relative z-10 mx-auto max-w-7xl px-6 pb-8 pt-16 md:px-12 md:pb-10 md:pt-24 lg:px-16">
+          <div className="mx-auto max-w-5xl rounded-[20px] border border-[#6b5f45]/45 bg-[linear-gradient(160deg,rgba(59,54,42,0.28)_0%,rgba(19,32,34,0.64)_45%,rgba(12,20,22,0.72)_100%)] px-6 py-10 text-center shadow-[0_28px_80px_rgba(0,0,0,0.45)] backdrop-blur-sm md:px-12 md:py-16">
+            <h2 className="font-sans text-3xl font-normal tracking-[0.15em] text-[#c9b896] uppercase md:text-5xl">
+              Join Our Community
+            </h2>
+            <p className="mx-auto mt-7 max-w-3xl font-serif text-base leading-relaxed text-[#b8a882] italic md:text-lg">
+              Join our community to share strategies, discuss lore, and fight alongside others who were born from the remnants.
+            </p>
+            <button
+              className="mt-8 min-w-[160px] rounded-[18px] border border-[#6b5f45]/50 px-8 py-3 font-sans text-[13px] font-normal tracking-[0.15em] text-[#d4c5a9] backdrop-blur-sm transition-all duration-300 hover:border-[#8a7d5a] hover:text-white md:mt-12"
+              style={{
+                background: 'linear-gradient(145deg, rgba(82, 74, 52, 0.65) 0%, rgba(52, 47, 35, 0.75) 50%, rgba(35, 32, 25, 0.85) 100%)',
+              }}
+              onClick={() => window.location.href = "/login"}
+            >
+              Join Community
+            </button>
+          </div>
+
+          <footer className="mt-16 md:mt-24">
+            <div className="flex flex-col items-center justify-between gap-8 md:flex-row md:items-end">
+              <div className="text-center md:text-left">
+                <p className="font-sans text-4xl tracking-[0.1em] text-[#c9b896] md:text-5xl">Remnantborn</p>
+                <p className="mt-1 font-serif text-xl italic text-[#b8a882] md:text-2xl">The Last Tear</p>
+              </div>
+
+              <div className="flex items-center gap-10">
+                <a href="#" aria-label="Instagram" className="text-[#d4c5a9] transition-colors hover:text-white">
+                  <Instagram size={36} strokeWidth={2.2} />
+                </a>
+                <a href="#" aria-label="Facebook" className="text-[#d4c5a9] transition-colors hover:text-white">
+                  <Facebook size={36} strokeWidth={2.2} />
+                </a>
+                <a href="#" aria-label="Twitter" className="text-[#d4c5a9] transition-colors hover:text-white">
+                  <Twitter size={36} strokeWidth={2.2} />
+                </a>
+              </div>
+            </div>
+
+            <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-[#6b5f45]/45 pt-6 text-center md:flex-row md:pt-8">
+              <p className="font-sans text-xs tracking-[0.08em] text-[#d4c5a9]">Copyright 2026</p>
+              <a href="#" className="font-sans text-sm tracking-[0.1em] text-[#d4c5a9] uppercase transition-colors hover:text-white">Privacy Policy</a>
+              <a href="#" className="font-sans text-sm tracking-[0.1em] text-[#d4c5a9] uppercase transition-colors hover:text-white">Terms & Conditions</a>
+              <a href="#" className="font-sans text-sm tracking-[0.1em] text-[#d4c5a9] uppercase transition-colors hover:text-white">Ad Choices</a>
+            </div>
+          </footer>
         </div>
       </section>
 
