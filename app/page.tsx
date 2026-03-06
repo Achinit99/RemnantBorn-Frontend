@@ -1,65 +1,304 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import { ChevronDown, User, Menu, X, Instagram, Facebook, Twitter } from "lucide-react"
+import Link from "next/link"
+import { useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+
+export default function RemnantbornLanding() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [showFloatingButton, setShowFloatingButton] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  // Handle scroll for navbar background
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50)
+    }
+    
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  useEffect(() => {
+    const animationCycle = () => {
+      // Show button -> slide in
+      setShowFloatingButton(true)
+      
+      // Hide button after 1 second -> slide out
+      setTimeout(() => {
+        setShowFloatingButton(false)
+      }, 1000)
+    }
+
+    // Initial delay before first appearance
+    const initialTimeout = setTimeout(() => {
+      animationCycle()
+    }, 2000)
+
+    // Repeat every 5 seconds 
+    const interval = setInterval(() => {
+      animationCycle()
+    }, 5000)
+
+    return () => {
+      clearTimeout(initialTimeout)
+      clearInterval(interval)
+    }
+  }, [])
+
+  const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
+    e.preventDefault()
+    const element = document.getElementById(targetId)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+    setMobileMenuOpen(false)
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="relative w-full overflow-hidden scroll-smooth">
+      {/* Video Element */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover" //object-contain
+      >
+      <source src="/videos/hero-bg.mp4" type="video/mp4" />
+      {/* if video not view */}
+      Your browser does not support the video tag.
+      </video>
+
+      {/* Dark overlay for better text readability */}
+      <div className="absolute inset-0 bg-black/50" />
+
+      {/* Content */}
+      <div className="relative z-10 flex min-h-screen flex-col pt-16">
+        {/* Navigation */}
+        <header 
+          className={`fixed left-0 right-0 top-0 z-40 w-full px-6 py-4 transition-all duration-300 md:px-12 lg:px-16 ${
+            isScrolled 
+              ? 'bg-black/70 backdrop-blur-md shadow-lg' 
+              : 'bg-transparent'
+          }`}
+        >
+          <nav className="flex items-center justify-between">
+            {/* Left Nav */}
+            <div className="hidden items-center gap-8 md:flex lg:gap-12">
+              <a
+                href="#about"
+                onClick={(e) => handleSmoothScroll(e, 'about')}
+                className="cursor-pointer font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white"
+              >
+                About
+              </a>
+              <Link
+                href="#features"
+                className="font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white"
+              >
+                Game Features
+              </Link>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              className="text-[#d4c5a9] md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+
+            {/* Center spacer for logo area */}
+            <div className="hidden md:block" />
+
+            {/* Right Nav */}
+            <div className="hidden items-center gap-8 md:flex lg:gap-12">
+              <a
+                href="#community"
+                onClick={(e) => handleSmoothScroll(e, 'community')}
+                className="cursor-pointer font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white"
+              >
+                Community
+              </a>
+              <Link
+                href="#login"
+                className="font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white"
+              >
+                Login
+              </Link>
+              <button
+                className="text-[#d4c5a9] transition-colors hover:text-white"
+                aria-label="User profile"
+              >
+                <User size={20} />
+              </button>
+            </div>
+
+            {/* Mobile User Icon */}
+            <button
+              className="text-[#d4c5a9] transition-colors hover:text-white md:hidden"
+              aria-label="User profile"
+            >
+              <User size={20} />
+            </button>
+          </nav>
+
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="mt-4 flex flex-col gap-4 rounded-lg bg-black/80 p-6 backdrop-blur-sm md:hidden">
+              <a
+                href="#about"
+                onClick={(e) => handleSmoothScroll(e, 'about')}
+                className="cursor-pointer font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white"
+              >
+                About
+              </a>
+              <Link
+                href="#features"
+                className="font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Game Features
+              </Link>
+              <Link
+                href="#community"
+                className="font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Community
+              </Link>
+              <Link
+                href="#login"
+                className="font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Login
+              </Link>
+            </div>
+          )}
+        </header>
+
+        {/* Hero Content */}
+        <main className="flex flex-1 flex-col items-center justify-center px-4 text-center">
+          {/* Title */}
+          <h1 className="font-sans text-5xl font-normal tracking-[0.12em] text-[#c9b896] drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] sm:text-6xl md:text-7xl lg:text-8xl">
+            Remnantborn
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          {/* Subtitle */}
+          <p className="mt-1 font-serif text-2xl font-normal italic text-[#b8a882] drop-shadow-sm sm:text-3xl md:text-4xl">
+            The Last Tear
           </p>
+
+          {/* Tagline */}
+          <p className="mt-6 font-sans text-xs tracking-[0.25em] text-[#d4c5a9] uppercase drop-shadow sm:text-sm md:mt-8 md:text-base">
+            Fight the Remnants, Awaken Your True Power
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="mt-16 flex flex-col items-center gap-6 sm:flex-row sm:gap-8 md:mt-24 lg:mt-32 lg:gap-48">
+            <button 
+              className="min-w-[160px] rounded-[18px] border border-[#6b5f45]/50 px-8 py-3 font-sans text-[13px] font-normal tracking-[0.15em] text-[#d4c5a9] backdrop-blur-sm transition-all duration-300 hover:border-[#8a7d5a] hover:text-white"
+              style={{
+                background: 'linear-gradient(145deg, rgba(82, 74, 52, 0.65) 0%, rgba(52, 47, 35, 0.75) 50%, rgba(35, 32, 25, 0.85) 100%)',
+              }}
+            >
+              Watch Trailer
+            </button>
+
+            <button 
+              className="min-w-[160px] rounded-[18px] border border-[#6b5f45]/50 px-8 py-3 font-sans text-[13px] font-normal tracking-[0.15em] text-[#d4c5a9] backdrop-blur-sm transition-all duration-300 hover:border-[#8a7d5a] hover:text-white"
+              style={{
+                background: 'linear-gradient(145deg, rgba(82, 74, 52, 0.65) 0%, rgba(52, 47, 35, 0.75) 50%, rgba(35, 32, 25, 0.85) 100%)',
+              }}
+            >
+              Play Game
+            </button>
+          </div>
+
+          {/* Scroll Indicator */}
+          <div className="mt-12 flex flex-col items-center gap-1 md:mt-16">
+            <span className="font-sans text-xs tracking-[0.3em] text-[#d4c5a9] uppercase">
+              Scroll
+            </span>
+            <div className="flex flex-col items-center">
+              <ChevronDown size={16} className="text-[#d4c5a9] animate-bounce" />
+              <ChevronDown size={16} className="-mt-2 text-[#d4c5a9] animate-bounce" style={{ animationDelay: '0.1s' }} />
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* About Section */}
+      <section id="about" className="relative w-full bg-[#0a0a09] py-16 md:py-24">
+        <div className="mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
+          {/* Section Title */}
+          <h2 className="font-sans text-3xl font-normal tracking-[0.15em] text-[#c9b896] uppercase md:text-4xl lg:text-5xl">
+            Fight The Remnants
+          </h2>
+
+          {/* Content Grid */}
+          <div className="mt-12 flex flex-col items-center gap-12 lg:mt-16 lg:flex-row lg:items-start lg:gap-16">
+            {/* Left Column - Logo/Emblem */}
+            <div className="flex flex-shrink-0 flex-col items-center">
+              <div className="relative h-[280px] w-[280px] md:h-[320px] md:w-[320px]">
+                <img
+                  src="/images/remnantborn-emblem.jpg"
+                  alt="Remnantborn emblem"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+              <div className="mt-4 text-center">
+                <p className="font-sans text-sm tracking-[0.2em] text-[#c9b896] uppercase">Remnantborn</p>
+                <p className="font-serif text-xs italic text-[#8a7d5a]">The Last Tear</p>
+              </div>
+            </div>
+
+            {/* Right Column - Text Content */}
+            <div className="flex flex-1 flex-col gap-8 lg:pt-4">
+              <div className="max-w-2xl">
+                <p className="font-serif text-base leading-relaxed text-[#b8a882] italic md:text-lg">
+                  Remnantborn – The Last Tear is a fantasy action fighting game set in a world where magic and reality collide. After a devastating catastrophe shattered the balance of the realm, only fragments of power—known as Remnants—remain.
+                </p>
+
+                <p className="mt-6 font-serif text-base leading-relaxed text-[#b8a882] italic md:text-lg">
+                  You play as a Remnantborn, a warrior born from loss, memory, and the final tear left behind by a dying world. Each battle blends fast-paced combat, magical abilities, and raw physical strength as you fight corrupted enemies and uncover the truth behind the world's collapse.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </section>
+
+      {/* Floating Play Game Button */}
+      <AnimatePresence>
+        {showFloatingButton && (
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ 
+              type: "spring", 
+              stiffness: 300, 
+              damping: 30,
+              duration: 0.5 
+            }}
+            className="fixed bottom-8 right-0 z-50"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+            <button 
+              className="rounded-l-[18px] border border-r-0 border-[#6b5f45]/50 px-6 py-4 font-sans text-[12px] font-normal tracking-[0.15em] text-[#d4c5a9] uppercase shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-[#8a7d5a] hover:text-white"
+              style={{
+                background: 'linear-gradient(145deg, rgba(82, 74, 52, 0.85) 0%, rgba(52, 47, 35, 0.9) 50%, rgba(35, 32, 25, 0.95) 100%)',
+              }}
+            >
+              Play Game<br />Now
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
-  );
+  )
 }
