@@ -2,6 +2,8 @@
 
 # dependencies
 /node_modules
+frontend/node_modules/
+backend/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -23,6 +25,22 @@
 # misc
 .DS_Store
 *.pem
+
+# Next.js Build files
+.next/
+frontend/.next/
+out/
+
+# NestJS Build files
+dist/
+backend/dist/
+
+# Environment Variables 
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # debug
 npm-debug.log*
