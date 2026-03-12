@@ -5,6 +5,8 @@ import Link from "next/link"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
+import { authApi, getApiErrorMessage } from "@/lib/auth-api"
+
 const ctaButtonStyle = {
   background: "linear-gradient(145deg, rgba(82, 74, 52, 0.65) 0%, rgba(52, 47, 35, 0.75) 50%, rgba(35, 32, 25, 0.85) 100%)",
 }
@@ -17,29 +19,53 @@ export default function SignupPage() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [otp, setOtp] = useState(["", "", "", ""])
   const [isAge16, setIsAge16] = useState(false)
   const [agreeTerms, setAgreeTerms] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const nextStep = () => {
-    if (step === 3) {
-      // Final step - redirect to login
-      router.push("/login")
-    } else if (step < 3) {
-      setStep((prev) => prev + 1)
+  const handleSignupSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setErrorMessage("")
+
+    if (step === 1) {
+      setStep(2)
+      return
     }
-  }
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) return
-    const newOtp = [...otp]
-    newOtp[index] = value
-    setOtp(newOtp)
+    if (step === 2) {
+      if (password !== confirmPassword) {
+        setErrorMessage("Passwords do not match.")
+        return
+      }
 
-    // Auto-focus next input
-    if (value && index < 3) {
-      const nextInput = document.getElementById(`otp-${index + 1}`)
-      nextInput?.focus()
+      setStep(3)
+      return
+    }
+
+    if (!isAge16 || !agreeTerms) {
+      setErrorMessage("Please confirm your age and accept the terms to continue.")
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      await authApi.post("/auth/signup", {
+        email,
+        username,
+        password,
+      })
+
+      setSuccessMessage("Account created successfully. Redirecting to login...")
+      window.setTimeout(() => {
+        router.push("/login")
+      }, 1200)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, "Unable to create your account. Please try again."))
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -122,26 +148,23 @@ export default function SignupPage() {
               {step === 1 && "Enter your email you prefer to create the game account. You will be able to join the community with this email later."}
               {step === 2 && (
                 <>
-                  An account has been created using the email address: <span className="font-sans text-[#d4c5a9]">{email || "user@email.com"}</span>.
+                  Your account will be created using the email address: <span className="font-sans text-[#d4c5a9]">{email || "user@email.com"}</span>.
                   <br />
-                  Please enter a username and a password below.
+                  Please enter a username and password below.
                 </>
               )}
               {step === 3 && (
                 <>
-                  To confirm your email, a code has been sent to the email address: <span className="font-sans text-[#d4c5a9]">{email || "user@email.com"}</span>.
+                  Review your account details for <span className="font-sans text-[#d4c5a9]">{email || "user@email.com"}</span> and accept the terms to finish creating your account.
                   <br />
-                  Please verify your account by entering the code below.
+                  Your account will be created when you continue.
                 </>
               )}
             </p>
 
             <form
               className="mx-auto mt-8 flex max-w-xl flex-col items-center gap-4 md:mt-10"
-              onSubmit={(e) => {
-                e.preventDefault()
-                nextStep()
-              }}
+              onSubmit={handleSignupSubmit}
             >
               {step === 1 && (
                 <>
@@ -152,7 +175,12 @@ export default function SignupPage() {
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      if (errorMessage) {
+                        setErrorMessage("")
+                      }
+                    }}
                     placeholder="Email"
                     className="h-12 w-full rounded-[18px] border border-[#6b5f45]/50 bg-[linear-gradient(145deg,rgba(82,74,52,0.3)_0%,rgba(52,47,35,0.45)_50%,rgba(35,32,25,0.55)_100%)] px-6 text-center font-sans text-sm tracking-[0.08em] text-[#d4c5a9] placeholder:text-[#a89876] focus:outline-none"
                     required
@@ -169,7 +197,12 @@ export default function SignupPage() {
                     id="username"
                     type="text"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => {
+                      setUsername(e.target.value)
+                      if (errorMessage) {
+                        setErrorMessage("")
+                      }
+                    }}
                     placeholder="Username"
                     className="h-12 w-full rounded-[18px] border border-[#6b5f45]/50 bg-[linear-gradient(145deg,rgba(82,74,52,0.3)_0%,rgba(52,47,35,0.45)_50%,rgba(35,32,25,0.55)_100%)] px-6 text-center font-sans text-sm tracking-[0.08em] text-[#d4c5a9] placeholder:text-[#a89876] focus:outline-none"
                     required
@@ -182,8 +215,31 @@ export default function SignupPage() {
                     id="password"
                     type="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      if (errorMessage) {
+                        setErrorMessage("")
+                      }
+                    }}
                     placeholder="Password"
+                    className="h-12 w-full rounded-[18px] border border-[#6b5f45]/50 bg-[linear-gradient(145deg,rgba(82,74,52,0.3)_0%,rgba(52,47,35,0.45)_50%,rgba(35,32,25,0.55)_100%)] px-6 text-center font-sans text-sm tracking-[0.08em] text-[#d4c5a9] placeholder:text-[#a89876] focus:outline-none"
+                    required
+                  />
+
+                  <label htmlFor="confirm-password" className="sr-only">
+                    Confirm password
+                  </label>
+                  <input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value)
+                      if (errorMessage) {
+                        setErrorMessage("")
+                      }
+                    }}
+                    placeholder="Confirm Password"
                     className="h-12 w-full rounded-[18px] border border-[#6b5f45]/50 bg-[linear-gradient(145deg,rgba(82,74,52,0.3)_0%,rgba(52,47,35,0.45)_50%,rgba(35,32,25,0.55)_100%)] px-6 text-center font-sans text-sm tracking-[0.08em] text-[#d4c5a9] placeholder:text-[#a89876] focus:outline-none"
                     required
                   />
@@ -192,27 +248,17 @@ export default function SignupPage() {
 
               {step === 3 && (
                 <>
-                  <div className="flex gap-3 justify-center md:gap-4">
-                    {[0, 1, 2, 3].map((index) => (
-                      <input
-                        key={index}
-                        id={`otp-${index}`}
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={1}
-                        value={otp[index]}
-                        onChange={(e) => handleOtpChange(index, e.target.value)}
-                        className="h-12 w-12 rounded-[12px] border border-[#6b5f45]/50 bg-[linear-gradient(145deg,rgba(82,74,52,0.3)_0%,rgba(52,47,35,0.45)_50%,rgba(35,32,25,0.55)_100%)] text-center font-sans text-lg tracking-[0.08em] text-[#d4c5a9] focus:outline-none focus:border-[#d4c5a9]"
-                      />
-                    ))}
-                  </div>
-
                   <div className="mt-6 flex flex-col gap-3 w-full">
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={isAge16}
-                        onChange={(e) => setIsAge16(e.target.checked)}
+                        onChange={(e) => {
+                          setIsAge16(e.target.checked)
+                          if (errorMessage) {
+                            setErrorMessage("")
+                          }
+                        }}
                         className="h-5 w-5 rounded border border-[#6b5f45]/50 bg-[#0d1312] cursor-pointer accent-[#d4c5a9]"
                       />
                       <span className="font-sans text-sm text-[#d4c5a9]">I am above age 16</span>
@@ -222,7 +268,12 @@ export default function SignupPage() {
                       <input
                         type="checkbox"
                         checked={agreeTerms}
-                        onChange={(e) => setAgreeTerms(e.target.checked)}
+                        onChange={(e) => {
+                          setAgreeTerms(e.target.checked)
+                          if (errorMessage) {
+                            setErrorMessage("")
+                          }
+                        }}
                         className="h-5 w-5 rounded border border-[#6b5f45]/50 bg-[#0d1312] cursor-pointer accent-[#d4c5a9]"
                       />
                       <span className="font-sans text-sm text-[#d4c5a9]">I agree to the terms and conditions</span>
@@ -231,15 +282,27 @@ export default function SignupPage() {
                 </>
               )}
 
+              {errorMessage && (
+                <p className="w-full rounded-[18px] border border-[#7b3d33] bg-[#2a120f]/80 px-4 py-3 text-center font-sans text-sm tracking-[0.04em] text-[#f0c2b6]">
+                  {errorMessage}
+                </p>
+              )}
+
+              {successMessage && (
+                <p className="w-full rounded-[18px] border border-[#5b6b45] bg-[#18231a]/80 px-4 py-3 text-center font-sans text-sm tracking-[0.04em] text-[#d5e3b5]">
+                  {successMessage}
+                </p>
+              )}
+
               <button
                 type="submit"
-                disabled={step === 3 && (!isAge16 || !agreeTerms)}
+                disabled={isSubmitting || (step === 3 && (!isAge16 || !agreeTerms))}
                 className="mt-4 min-w-[160px] rounded-[18px] border border-[#6b5f45]/50 px-8 py-3 font-sans text-[13px] font-normal tracking-[0.15em] text-[#d4c5a9] backdrop-blur-sm transition-all duration-300 hover:border-[#8a7d5a] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 style={ctaButtonStyle}
               >
                 {step === 1 && "CONTINUE"}
                 {step === 2 && "CONTINUE"}
-                {step === 3 && "AGREE & CONTINUE"}
+                {step === 3 && (isSubmitting ? "CREATING ACCOUNT..." : "CREATE ACCOUNT")}
               </button>
             </form>
 

@@ -2,33 +2,51 @@
 
 import { Menu, User, X } from "lucide-react"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { useState, type FormEvent } from "react"
 
+import { authApi, getApiErrorMessage } from "@/lib/auth-api"
 import {
-  createDevAuthCookieString,
-  createDevAuthToken,
+  createAuthCookieString,
   sanitizeNextPath,
 } from "@/lib/auth"
 
 export default function LoginPage() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [errorMessage, setErrorMessage] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleLoginSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     const nextPath = sanitizeNextPath(searchParams.get("next"))
+    setErrorMessage("")
+    setIsSubmitting(true)
 
-    if (process.env.NODE_ENV !== "production") {
-      const devCookie = createDevAuthCookieString(createDevAuthToken())
-      document.cookie = devCookie
+    try {
+      const response = await authApi.post("/auth/login", {
+        email,
+        password,
+      })
+
+      const accessToken = response.data?.access_token
+
+      if (typeof accessToken !== "string" || accessToken.length === 0) {
+        throw new Error("Login succeeded, but no access token was returned.")
+      }
+
+      localStorage.setItem("access_token", accessToken)
+      document.cookie = createAuthCookieString(accessToken)
+      window.location.assign(nextPath)
+      return
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, "Unable to log in. Please try again."))
+    } finally {
+      setIsSubmitting(false)
     }
-
-    router.push(nextPath)
   }
 
   return (
@@ -118,7 +136,12 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value)
+                  if (errorMessage) {
+                    setErrorMessage("")
+                  }
+                }}
                 placeholder="Email"
                 required
                 className="h-12 w-full rounded-[18px] border border-[#6b5f45]/50 bg-[linear-gradient(145deg,rgba(82,74,52,0.3)_0%,rgba(52,47,35,0.45)_50%,rgba(35,32,25,0.55)_100%)] px-6 text-center font-sans text-sm tracking-[0.08em] text-[#d4c5a9] placeholder:text-[#a89876] focus:outline-none"
@@ -131,20 +154,32 @@ export default function LoginPage() {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(event) => {
+                  setPassword(event.target.value)
+                  if (errorMessage) {
+                    setErrorMessage("")
+                  }
+                }}
                 placeholder="Password"
                 required
                 className="h-12 w-full rounded-[18px] border border-[#6b5f45]/50 bg-[linear-gradient(145deg,rgba(82,74,52,0.3)_0%,rgba(52,47,35,0.45)_50%,rgba(35,32,25,0.55)_100%)] px-6 text-center font-sans text-sm tracking-[0.08em] text-[#d4c5a9] placeholder:text-[#a89876] focus:outline-none"
               />
 
+              {errorMessage && (
+                <p className="w-full rounded-[18px] border border-[#7b3d33] bg-[#2a120f]/80 px-4 py-3 text-center font-sans text-sm tracking-[0.04em] text-[#f0c2b6]">
+                  {errorMessage}
+                </p>
+              )}
+
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="mt-4 min-w-[160px] rounded-[18px] border border-[#6b5f45]/50 px-8 py-3 font-sans text-[13px] font-normal tracking-[0.15em] text-[#d4c5a9] backdrop-blur-sm transition-all duration-300 hover:border-[#8a7d5a] hover:text-white"
                 style={{
                   background: "linear-gradient(145deg, rgba(82, 74, 52, 0.65) 0%, rgba(52, 47, 35, 0.75) 50%, rgba(35, 32, 25, 0.85) 100%)",
                 }}
               >
-                SIGN IN
+                {isSubmitting ? "SIGNING IN..." : "SIGN IN"}
               </button>
             </form>
 
