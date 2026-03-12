@@ -6,8 +6,10 @@ export const AUTH_COOKIE_CANDIDATES = [
   "session",
 ] as const
 
-export const DEV_AUTH_COOKIE_NAME = "rb_access_token"
-export const DEV_AUTH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 12
+export const AUTH_COOKIE_NAME = "rb_access_token"
+export const AUTH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 12
+export const DEV_AUTH_COOKIE_NAME = AUTH_COOKIE_NAME
+export const DEV_AUTH_COOKIE_MAX_AGE_SECONDS = AUTH_COOKIE_MAX_AGE_SECONDS
 export const DEFAULT_AUTH_REDIRECT_PATH = "/community"
 
 interface CookieStoreLike {
@@ -41,13 +43,20 @@ export function createDevAuthToken(): string {
   return `dev-session-${Date.now()}`
 }
 
+export function createAuthCookieString(
+  token: string,
+  maxAgeSeconds: number = AUTH_COOKIE_MAX_AGE_SECONDS,
+): string {
+  return `${AUTH_COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`
+}
+
 export function createDevAuthCookieString(
   token: string,
   maxAgeSeconds: number = DEV_AUTH_COOKIE_MAX_AGE_SECONDS,
 ): string {
-  return `${DEV_AUTH_COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`
+  return createAuthCookieString(token, maxAgeSeconds)
 }
 
-export function clearAuthCookie(cookieName: string = DEV_AUTH_COOKIE_NAME): string {
+export function clearAuthCookie(cookieName: string = AUTH_COOKIE_NAME): string {
   return `${cookieName}=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
 }
