@@ -2,10 +2,34 @@
 
 import { Menu, User, X } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useState, type FormEvent } from "react"
+
+import {
+  createDevAuthCookieString,
+  createDevAuthToken,
+  sanitizeNextPath,
+} from "@/lib/auth"
 
 export default function LoginPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+
+  const handleLoginSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    const nextPath = sanitizeNextPath(searchParams.get("next"))
+
+    if (process.env.NODE_ENV !== "production") {
+      const devCookie = createDevAuthCookieString(createDevAuthToken())
+      document.cookie = devCookie
+    }
+
+    router.push(nextPath)
+  }
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#020b0d] text-white">
@@ -86,14 +110,17 @@ export default function LoginPage() {
               To continue playing "Remnantborn the last tear" you need to connect to a game account. Enter follow details to sign in to an existing account or you can create an account
             </p>
 
-            <form className="mx-auto mt-8 flex max-w-xl flex-col items-center gap-4 md:mt-10" onSubmit={(e) => e.preventDefault()}>
+            <form className="mx-auto mt-8 flex max-w-xl flex-col items-center gap-4 md:mt-10" onSubmit={handleLoginSubmit}>
               <label htmlFor="email" className="sr-only">
                 Email
               </label>
               <input
                 id="email"
                 type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
                 placeholder="Email"
+                required
                 className="h-12 w-full rounded-[18px] border border-[#6b5f45]/50 bg-[linear-gradient(145deg,rgba(82,74,52,0.3)_0%,rgba(52,47,35,0.45)_50%,rgba(35,32,25,0.55)_100%)] px-6 text-center font-sans text-sm tracking-[0.08em] text-[#d4c5a9] placeholder:text-[#a89876] focus:outline-none"
               />
 
@@ -103,7 +130,10 @@ export default function LoginPage() {
               <input
                 id="password"
                 type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
                 placeholder="Password"
+                required
                 className="h-12 w-full rounded-[18px] border border-[#6b5f45]/50 bg-[linear-gradient(145deg,rgba(82,74,52,0.3)_0%,rgba(52,47,35,0.45)_50%,rgba(35,32,25,0.55)_100%)] px-6 text-center font-sans text-sm tracking-[0.08em] text-[#d4c5a9] placeholder:text-[#a89876] focus:outline-none"
               />
 
