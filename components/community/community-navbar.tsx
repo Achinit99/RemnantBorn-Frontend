@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { useState } from "react"
 
 import type { NavLink } from "@/components/community/types"
-import { AUTH_COOKIE_CANDIDATES, clearAuthCookie } from "@/lib/auth"
+import { clearClientAuthSession } from "@/lib/auth"
 
 interface CommunityNavbarProps {
   links: NavLink[]
@@ -26,10 +26,7 @@ export function CommunityNavbar({ links }: CommunityNavbarProps) {
   }
 
   const handleLogout = () => {
-    AUTH_COOKIE_CANDIDATES.forEach((cookieName) => {
-      document.cookie = clearAuthCookie(cookieName)
-    })
-
+    clearClientAuthSession()
     router.push("/login")
   }
 

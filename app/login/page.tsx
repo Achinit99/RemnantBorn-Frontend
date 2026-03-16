@@ -7,6 +7,7 @@ import { useState, type FormEvent } from "react"
 
 import { authApi, getApiErrorMessage } from "@/lib/auth-api"
 import {
+  ACCESS_TOKEN_STORAGE_KEY,
   createAuthCookieString,
   sanitizeNextPath,
 } from "@/lib/auth"
@@ -38,7 +39,7 @@ export default function LoginPage() {
         throw new Error("Login succeeded, but no access token was returned.")
       }
 
-      localStorage.setItem("access_token", accessToken)
+      localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, accessToken)
       document.cookie = createAuthCookieString(accessToken)
       window.location.assign(nextPath)
       return

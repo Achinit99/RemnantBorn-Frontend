@@ -11,6 +11,7 @@ export const AUTH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 12
 export const DEV_AUTH_COOKIE_NAME = AUTH_COOKIE_NAME
 export const DEV_AUTH_COOKIE_MAX_AGE_SECONDS = AUTH_COOKIE_MAX_AGE_SECONDS
 export const DEFAULT_AUTH_REDIRECT_PATH = "/community"
+export const ACCESS_TOKEN_STORAGE_KEY = "access_token"
 
 interface CookieStoreLike {
   get: (name: string) => { value: string } | undefined
@@ -59,4 +60,24 @@ export function createDevAuthCookieString(
 
 export function clearAuthCookie(cookieName: string = AUTH_COOKIE_NAME): string {
   return `${cookieName}=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
+}
+
+export function getStoredAccessToken(): string | null {
+  if (typeof window === "undefined") {
+    return null
+  }
+
+  return window.localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)
+}
+
+export function clearClientAuthSession(): void {
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY)
+  }
+
+  if (typeof document !== "undefined") {
+    AUTH_COOKIE_CANDIDATES.forEach((cookieName) => {
+      document.cookie = clearAuthCookie(cookieName)
+    })
+  }
 }
