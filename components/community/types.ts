@@ -10,13 +10,12 @@ export interface PlayerStat {
 
 export interface PlayerProfile {
   username: string
+  email: string
   level: number
-  avatarUrl: string
-  experienceLabel: string
-  experienceValue: number
-  gold: string
-  achievements: string[]
-  stats: PlayerStat[]
+  rank: string
+  avatarUrl: string | null
+  remnantCount: number
+  bio: string
 }
 
 export interface Bounty {

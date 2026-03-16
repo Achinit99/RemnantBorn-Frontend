@@ -17,16 +17,12 @@ export const communityNavLinks: NavLink[] = [
 
 export const playerProfile: PlayerProfile = {
   username: "Legendary Hero",
+  email: "legendary.hero@remnantborn.gg",
   level: 99,
-  avatarUrl: "",
-  experienceLabel: "Experience",
-  experienceValue: 78,
-  gold: "50,000 G",
-  achievements: ["Dragon Slayer", "Collector", "Adventurer"],
-  stats: [
-    { label: "Experience", value: "1,234,456 XP" },
-    { label: "Gold", value: "50,000 G" },
-  ],
+  rank: "Mythic Warden",
+  avatarUrl: null,
+  remnantCount: 50000,
+  bio: "Veteran Remnantborn, relic hunter, and guardian of the ember gates.",
 }
 
 export const bounties: Bounty[] = [
