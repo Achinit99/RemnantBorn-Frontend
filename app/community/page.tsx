@@ -4,10 +4,10 @@ import axios from "axios"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import type { RealtimePostgresInsertPayload, SupabaseClient } from "@supabase/supabase-js"
 
 import {
   dailyRelic,
-  achievementPosts,
   bounties,
   liveChatMessages,
 } from "@/app/community/mock-data"
@@ -15,11 +15,158 @@ import { AchievementFeed } from "@/components/community/achievement-feed"
 import { BountyBoard } from "@/components/community/bounty-board"
 import { DailyRelicStatus } from "@/components/community/daily-relic-status"
 import { LiveChatPanel } from "@/components/community/live-chat-panel"
-import type { PlayerProfile } from "@/components/community/types"
+import type { AchievementPost, PlayerProfile } from "@/components/community/types"
 import { PlayerProfileSidebar } from "@/components/community/player-profile-sidebar"
 import { getApiErrorMessage } from "@/lib/auth-api"
 import { clearClientAuthSession, getStoredAccessToken } from "@/lib/auth"
 import { getUserProfile, mapProfileResponseToPlayerProfile } from "@/lib/profile.service"
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
+
+type RealtimePostRow = Record<string, unknown>
+
+function pickString(row: RealtimePostRow, keys: string[]): string {
+  for (const key of keys) {
+    const value = row[key]
+
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim()
+    }
+  }
+
+  return ""
+}
+
+function pickNumber(row: RealtimePostRow, keys: string[]): number {
+  for (const key of keys) {
+    const value = row[key]
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value
+    }
+
+    if (typeof value === "string" && value.trim().length > 0) {
+      const parsed = Number(value)
+
+      if (Number.isFinite(parsed)) {
+        return parsed
+      }
+    }
+  }
+
+  return 0
+}
+
+function formatPostedAt(createdAt: string): string {
+  if (!createdAt) {
+    return "Just now"
+  }
+
+  const createdAtDate = new Date(createdAt)
+
+  if (Number.isNaN(createdAtDate.getTime())) {
+    return "Just now"
+  }
+
+  const elapsedMs = Date.now() - createdAtDate.getTime()
+  const elapsedMinutes = Math.floor(elapsedMs / 60000)
+
+  if (elapsedMinutes <= 0) {
+    return "Just now"
+  }
+
+  if (elapsedMinutes < 60) {
+    return `${elapsedMinutes}m ago`
+  }
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60)
+
+  if (elapsedHours < 24) {
+    return `${elapsedHours}h ago`
+  }
+
+  const elapsedDays = Math.floor(elapsedHours / 24)
+  return `${elapsedDays}d ago`
+}
+
+function mergePosts(primaryPosts: AchievementPost[], secondaryPosts: AchievementPost[]): AchievementPost[] {
+  const mergedPosts = [...primaryPosts, ...secondaryPosts]
+  const seenPostIds = new Set<string>()
+
+  return mergedPosts.filter((post) => {
+    if (seenPostIds.has(post.id)) {
+      return false
+    }
+
+    seenPostIds.add(post.id)
+    return true
+  })
+}
+
+async function fetchAuthorDetailsIfNeeded(supabase: SupabaseClient, row: RealtimePostRow): Promise<{ author: string; avatarUrl: string }> {
+  const author = pickString(row, ["username", "author", "author_username", "display_name"])
+  const avatarUrl = pickString(row, ["avatar_url", "avatarUrl", "author_avatar_url", "avatar"])
+
+  if (author && avatarUrl) {
+    return { author, avatarUrl }
+  }
+
+  const authorId = pickString(row, ["author_id", "user_id", "profile_id"])
+
+  if (!authorId) {
+    return {
+      author: author || "Unknown Player",
+      avatarUrl,
+    }
+  }
+
+  const profileResult = await supabase
+    .from("profiles")
+    .select("username, avatar_url")
+    .eq("user_id", authorId)
+    .maybeSingle()
+
+  if (!profileResult.error && profileResult.data) {
+    return {
+      author: profileResult.data.username || author || "Unknown Player",
+      avatarUrl: profileResult.data.avatar_url || avatarUrl || "",
+    }
+  }
+
+  const userResult = await supabase
+    .from("users")
+    .select("username, avatar_url")
+    .eq("id", authorId)
+    .maybeSingle()
+
+  if (!userResult.error && userResult.data) {
+    return {
+      author: userResult.data.username || author || "Unknown Player",
+      avatarUrl: userResult.data.avatar_url || avatarUrl || "",
+    }
+  }
+
+  return {
+    author: author || "Unknown Player",
+    avatarUrl,
+  }
+}
+
+async function mapRealtimePostToAchievementPost(supabase: SupabaseClient, row: RealtimePostRow): Promise<AchievementPost> {
+  const authorDetails = await fetchAuthorDetailsIfNeeded(supabase, row)
+  const createdAt = pickString(row, ["created_at"])
+  const postId = pickString(row, ["id"]) || `rt-${Date.now()}`
+
+  return {
+    id: postId,
+    author: authorDetails.author,
+    avatarUrl: authorDetails.avatarUrl,
+    postedAt: formatPostedAt(createdAt),
+    content: pickString(row, ["content", "body", "text"]),
+    likes: pickNumber(row, ["likes", "like_count", "likes_count"]),
+    comments: pickNumber(row, ["comments", "comment_count", "comments_count"]),
+    shares: pickNumber(row, ["shares", "share_count", "shares_count"]),
+  }
+}
 
 function DashboardSidebarSkeleton() {
   return (
@@ -44,9 +191,9 @@ export default function CommunityDashboardPage() {
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [isProfileLoading, setIsProfileLoading] = useState(true)
   const [profileErrorMessage, setProfileErrorMessage] = useState("")
+  const [previewPosts, setPreviewPosts] = useState<AchievementPost[]>([])
 
   const previewBounties = bounties.slice(0, 3)
-  const previewPosts = achievementPosts.slice(0, 3)
   const previewChat = liveChatMessages.slice(0, 3)
 
   useEffect(() => {
@@ -103,6 +250,78 @@ export default function CommunityDashboardPage() {
       isMounted = false
     }
   }, [router])
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient()
+
+    if (!supabase) {
+      return
+    }
+
+    let isMounted = true
+
+    const loadLatestPosts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("posts")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(3)
+
+        if (error) {
+          throw error
+        }
+
+        const mappedPosts = await Promise.all(
+          (data ?? []).map((postRow) => mapRealtimePostToAchievementPost(supabase, postRow as RealtimePostRow)),
+        )
+
+        if (!isMounted) {
+          return
+        }
+
+        setPreviewPosts(mappedPosts)
+      } catch (error) {
+        console.error("[CommunityDashboardPage] Error loading preview posts:", error)
+      }
+    }
+
+    void loadLatestPosts()
+
+    const channel = supabase
+      .channel("community-dashboard-preview-posts")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "posts",
+        },
+        async (payload: RealtimePostgresInsertPayload<RealtimePostRow>) => {
+          if (!isMounted) {
+            return
+          }
+
+          try {
+            const mappedPost = await mapRealtimePostToAchievementPost(supabase, payload.new)
+
+            if (!isMounted) {
+              return
+            }
+
+            setPreviewPosts((prevPosts) => mergePosts([mappedPost], prevPosts).slice(0, 3))
+          } catch (error) {
+            console.error("[CommunityDashboardPage] Error processing preview realtime payload:", error)
+          }
+        },
+      )
+      .subscribe()
+
+    return () => {
+      isMounted = false
+      void supabase.removeChannel(channel)
+    }
+  }, [])
 
   return (
     <div className="space-y-6">
