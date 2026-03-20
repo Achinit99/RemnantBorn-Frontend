@@ -1,6 +1,11 @@
+/**
+ * What: Root app shell with global fonts, metadata, and toaster setup.
+ * Why: Keeps shared app-level UI and document config in one place.
+ */
 import type { Metadata } from 'next'
 import { Cinzel, Cormorant_Garamond, Inter } from 'next/font/google'
 import './globals.css'
+import { Toaster } from '@/components/ui/toaster'
 
 const cinzel = Cinzel({ 
   subsets: ["latin"],
@@ -53,6 +58,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${cinzel.variable} ${cormorant.variable} ${inter.variable} antialiased`}>
         {children}
+        <Toaster />
       </body>
     </html>
   )

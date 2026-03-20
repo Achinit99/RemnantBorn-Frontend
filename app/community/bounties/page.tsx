@@ -1,3 +1,7 @@
+/**
+ * What: Dedicated bounty board page that renders the full bounty list.
+ * Why: Gives players a focused view of available tasks outside the dashboard preview.
+ */
 import { bounties } from "@/app/community/mock-data"
 import { BountyBoard } from "@/components/community/bounty-board"
 

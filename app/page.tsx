@@ -1,3 +1,7 @@
+/**
+ * What: Public landing page with hero media, navbar interactions, and section navigation.
+ * Why: This is the first-touch experience before users move into auth and community routes.
+ */
 "use client"
 
 import { ChevronDown, User, Menu, X, Instagram, Facebook, Twitter } from "lucide-react"
@@ -10,7 +14,7 @@ export default function RemnantbornLanding() {
   const [showFloatingButton, setShowFloatingButton] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
 
-  // Handle scroll for navbar background
+  // Quick visual polish: changing navbar style based on scroll depth.
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50)
@@ -21,6 +25,7 @@ export default function RemnantbornLanding() {
   }, [])
 
   useEffect(() => {
+    // Floating CTA pulse cycle so the primary action feels alive without being noisy.
     const animationCycle = () => {
       // Show button -> slide in
       setShowFloatingButton(true)

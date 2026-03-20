@@ -1,3 +1,7 @@
+/**
+ * What: Lightweight in-memory toast state manager with add/update/dismiss lifecycle.
+ * Why: Keeps toast orchestration centralized so UI components can fire notifications simply.
+ */
 'use client'
 
 // Inspired by react-hot-toast library
@@ -56,6 +60,7 @@ interface State {
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
 const addToRemoveQueue = (toastId: string) => {
+  // Queueing delayed removal keeps close animations smooth before actual cleanup.
   if (toastTimeouts.has(toastId)) {
     return
   }
@@ -72,6 +77,7 @@ const addToRemoveQueue = (toastId: string) => {
 }
 
 export const reducer = (state: State, action: Action): State => {
+  // Main toast state machine: add, update, dismiss, and finally remove from memory.
   switch (action.type) {
     case 'ADD_TOAST':
       return {

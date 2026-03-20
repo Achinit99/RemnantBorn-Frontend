@@ -1,10 +1,15 @@
+/**
+ * What: Community dashboard page that blends profile, bounties, social preview, and chat.
+ * Why: Acts as the main hub and coordinates auth-aware realtime social interactions.
+ */
 "use client"
 
 import axios from "axios"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { flushSync } from "react-dom"
 import { useRouter } from "next/navigation"
-import type { RealtimePostgresInsertPayload, SupabaseClient } from "@supabase/supabase-js"
+import type { RealtimePostgresDeletePayload, RealtimePostgresInsertPayload, SupabaseClient } from "@supabase/supabase-js"
 
 import {
   dailyRelic,
@@ -23,6 +28,9 @@ import { getUserProfile, mapProfileResponseToPlayerProfile } from "@/lib/profile
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 type RealtimePostRow = Record<string, unknown>
+type RealtimeLikeRow = Record<string, unknown>
+
+const COMMUNITY_SOCIAL_SYNC_CHANNEL = "community-social-sync"
 
 function pickString(row: RealtimePostRow, keys: string[]): string {
   for (const key of keys) {
@@ -86,6 +94,121 @@ function formatPostedAt(createdAt: string): string {
 
   const elapsedDays = Math.floor(elapsedHours / 24)
   return `${elapsedDays}d ago`
+}
+
+function extractUserIdFromAccessToken(accessToken: string | null): string {
+  if (!accessToken) {
+    return ""
+  }
+
+  const tokenParts = accessToken.split(".")
+
+  if (tokenParts.length < 2) {
+    return ""
+  }
+
+  try {
+    const normalizedPayload = tokenParts[1].replace(/-/g, "+").replace(/_/g, "/")
+    const jsonPayload = JSON.parse(atob(normalizedPayload)) as { sub?: unknown }
+    return typeof jsonPayload.sub === "string" ? jsonPayload.sub : ""
+  } catch {
+    return ""
+  }
+}
+
+function incrementPostLike(posts: AchievementPost[], postId: string, amount: number): AchievementPost[] {
+  return posts.map((post) => {
+    if (post.id !== postId) {
+      return post
+    }
+
+    return {
+      ...post,
+      likes: Math.max(0, post.likes + amount),
+    }
+  })
+}
+
+function getErrorCode(error: unknown): string {
+  if (error && typeof error === "object" && "code" in error && typeof error.code === "string") {
+    return error.code
+  }
+
+  return ""
+}
+
+async function fetchLikeCountsByPostId(supabase: SupabaseClient, postIds: string[]): Promise<Record<string, number>> {
+  if (postIds.length === 0) {
+    return {}
+  }
+
+  const { data, error } = await supabase
+    .from("post_likes")
+    .select("post_id")
+    .in("post_id", postIds)
+
+  if (error) {
+    throw error
+  }
+
+  const countsByPostId: Record<string, number> = {}
+
+  for (const row of data ?? []) {
+    const postId = pickString(row as RealtimeLikeRow, ["post_id"])
+
+    if (!postId) {
+      continue
+    }
+
+    countsByPostId[postId] = (countsByPostId[postId] ?? 0) + 1
+  }
+
+  return countsByPostId
+}
+
+async function fetchLikeCountForPost(supabase: SupabaseClient, postId: string): Promise<number> {
+  if (!postId) {
+    return 0
+  }
+
+  const { count, error } = await supabase
+    .from("post_likes")
+    .select("post_id", { count: "exact", head: true })
+    .eq("post_id", postId)
+
+  if (error) {
+    throw error
+  }
+
+  return count ?? 0
+}
+
+async function fetchLikedPostIdsForUser(supabase: SupabaseClient, userId: string, postIds: string[]): Promise<Set<string>> {
+  if (!userId || postIds.length === 0) {
+    return new Set<string>()
+  }
+
+  const { data, error } = await supabase
+    .from("post_likes")
+    .select("post_id")
+    .eq("user_id", userId)
+    .in("post_id", postIds)
+
+  if (error) {
+    throw error
+  }
+
+  const likedPostIds = new Set<string>()
+
+  for (const row of data ?? []) {
+    const postId = pickString(row as RealtimeLikeRow, ["post_id"])
+
+    if (postId) {
+      likedPostIds.add(postId)
+    }
+  }
+
+  return likedPostIds
 }
 
 function mergePosts(primaryPosts: AchievementPost[], secondaryPosts: AchievementPost[]): AchievementPost[] {
@@ -191,10 +314,298 @@ export default function CommunityDashboardPage() {
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [isProfileLoading, setIsProfileLoading] = useState(true)
   const [profileErrorMessage, setProfileErrorMessage] = useState("")
+  const [currentUserId, setCurrentUserId] = useState("")
+  const [isAuthLoading, setIsAuthLoading] = useState(true)
   const [previewPosts, setPreviewPosts] = useState<AchievementPost[]>([])
+  const [likedPostIds, setLikedPostIds] = useState<Set<string>>(new Set())
+  const [pendingLikePostIds, setPendingLikePostIds] = useState<Set<string>>(new Set())
+  const supabaseAuthUserIdRef = useRef("")
+  const didShowMissingSessionAlertRef = useRef(false)
+  const likedPostIdsRef = useRef<Set<string>>(new Set())
+  const pendingLikePostIdsRef = useRef<Set<string>>(new Set())
+
+  // Keeping refs fresh so rapid clicking still uses the latest state.
+  useEffect(() => {
+    likedPostIdsRef.current = likedPostIds
+  }, [likedPostIds])
+
+  // Pending set ref helps us block duplicate like/unlike requests.
+  useEffect(() => {
+    pendingLikePostIdsRef.current = pendingLikePostIds
+  }, [pendingLikePostIds])
 
   const previewBounties = bounties.slice(0, 3)
   const previewChat = liveChatMessages.slice(0, 3)
+
+  // === Like/Unlike Logic Starts Here ===
+  const handleLike = async (postId: string) => {
+    if (!postId || pendingLikePostIdsRef.current.has(postId)) {
+      return
+    }
+
+    const supabase = getSupabaseBrowserClient()
+
+    if (!supabase) {
+      return
+    }
+
+    const sessionResult = await supabase.auth.getSession()
+
+    if (sessionResult.error) {
+      console.error(
+        "[CommunityDashboardPage] Failed to get session in handleLike:",
+        sessionResult.error.message || sessionResult.error,
+      )
+    }
+
+    const sessionUserId = sessionResult.data.session?.user?.id ?? ""
+    const {
+      data: { user },
+      error: getUserError,
+    } = await supabase.auth.getUser()
+
+    if (getUserError) {
+      console.error(
+        "[CommunityDashboardPage] Failed to get user in handleLike:",
+        getUserError.message || getUserError,
+      )
+    }
+
+    console.log("Full Auth User Object:", user)
+
+    const userId = sessionUserId || user?.id || supabaseAuthUserIdRef.current || currentUserId
+    console.log("Current User ID in handleLike:", userId)
+
+    if (!userId) {
+      console.error("[AuthDebug] No user found in Supabase Auth")
+
+      if (!didShowMissingSessionAlertRef.current) {
+        didShowMissingSessionAlertRef.current = true
+        window.alert("Please log in to like posts")
+      }
+
+      console.error("[CommunityDashboardPage] Missing Supabase auth user id for like toggle")
+      return
+    }
+
+    const isAlreadyLiked = likedPostIdsRef.current.has(postId)
+    const shouldLike = !isAlreadyLiked
+    const optimisticDelta = shouldLike ? 1 : isAlreadyLiked ? -1 : 0
+
+    // === Ownership Guard ===
+    // No owned like, no decrement. This stops accidental count drops.
+    if (!shouldLike && !isAlreadyLiked) {
+      return
+    }
+
+    if (shouldLike) {
+      setPreviewPosts((prevPosts) => incrementPostLike(prevPosts, postId, optimisticDelta))
+      setLikedPostIds((prev) => {
+        const next = new Set(prev)
+        next.add(postId)
+        likedPostIdsRef.current = next
+        return next
+      })
+    } else {
+      // Force immediate local unlike paint before network call to avoid heart-color lag.
+      // Use functional update pattern with fresh Set instance to trigger immediate re-render.
+      flushSync(() => {
+        setLikedPostIds((prev) => {
+          const next = new Set(prev)
+          next.delete(postId)
+          likedPostIdsRef.current = next
+          return next
+        })
+        setPreviewPosts((prevPosts) => incrementPostLike(prevPosts, postId, optimisticDelta))
+      })
+    }
+    setPendingLikePostIds((prevPendingLikePostIds) => {
+      const nextPendingLikePostIds = new Set(prevPendingLikePostIds)
+      nextPendingLikePostIds.add(postId)
+      pendingLikePostIdsRef.current = nextPendingLikePostIds
+      return nextPendingLikePostIds
+    })
+
+    try {
+      const mutationResult = shouldLike
+        ? await supabase.from("post_likes").insert({
+            post_id: postId,
+            user_id: userId,
+          })
+        : await supabase
+            .from("post_likes")
+            .delete()
+            .eq("post_id", postId)
+            .eq("user_id", userId)
+
+      const { error } = mutationResult
+
+      if (error) {
+        throw error
+      }
+
+      if (!shouldLike) {
+        // This part handles the UI sync after unlike so preview count stays correct.
+        try {
+          const confirmedLikeCount = await fetchLikeCountForPost(supabase, postId)
+          setPreviewPosts((prevPosts) =>
+            prevPosts.map((post) =>
+              post.id === postId
+                ? {
+                    ...post,
+                    likes: confirmedLikeCount,
+                  }
+                : post,
+            ),
+          )
+        } catch (syncError) {
+          console.error("[CommunityDashboardPage] Failed to sync like count after unlike:", syncError)
+        }
+      }
+    } catch (error) {
+      if (shouldLike && getErrorCode(error) === "23505") {
+        // Already liked by this user. Roll back optimistic count, but keep liked state.
+        setPreviewPosts((prevPosts) => incrementPostLike(prevPosts, postId, -1))
+        setLikedPostIds((prev) => {
+          const next = new Set(prev)
+          next.add(postId)
+          likedPostIdsRef.current = next
+          return next
+        })
+        return
+      }
+
+      setPreviewPosts((prevPosts) => incrementPostLike(prevPosts, postId, -optimisticDelta))
+      setLikedPostIds((prevLikedPostIds) => {
+        const nextLikedPostIds = new Set(prevLikedPostIds)
+
+        if (isAlreadyLiked) {
+          nextLikedPostIds.add(postId)
+        } else {
+          nextLikedPostIds.delete(postId)
+        }
+
+        likedPostIdsRef.current = nextLikedPostIds
+        return nextLikedPostIds
+      })
+
+      const normalizedError = error as { message?: string; code?: string } | null
+      console.error("[CommunityDashboardPage] Error toggling like:", normalizedError?.message || error)
+
+      if (!shouldLike) {
+        const deleteVerification = await supabase
+          .from("post_likes")
+          .select("post_id, user_id")
+          .eq("post_id", postId)
+          .eq("user_id", userId)
+          .maybeSingle()
+
+        if (deleteVerification.error) {
+          console.error(
+            "[CommunityDashboardPage] Delete verification failed (possible RLS/permission issue):",
+            deleteVerification.error.message || deleteVerification.error,
+          )
+        }
+      }
+    } finally {
+      setPendingLikePostIds((prevPendingLikePostIds) => {
+        const nextPendingLikePostIds = new Set(prevPendingLikePostIds)
+        nextPendingLikePostIds.delete(postId)
+        pendingLikePostIdsRef.current = nextPendingLikePostIds
+        return nextPendingLikePostIds
+      })
+    }
+  }
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient()
+
+    if (!supabase) {
+      setIsAuthLoading(false)
+      return
+    }
+
+    let isActive = true
+    const authLoadingTimeout = window.setTimeout(() => {
+      if (isActive) {
+        setIsAuthLoading(false)
+      }
+    }, 2000)
+
+    const syncAuthUser = async () => {
+      try {
+        setIsAuthLoading(true)
+
+        const accessToken = getStoredAccessToken()
+        const decodedTokenUserId = extractUserIdFromAccessToken(accessToken)
+
+        const getUserResult = await supabase.auth.getUser()
+        let resolvedUserId = getUserResult.data.user?.id ?? ""
+
+        if ((getUserResult.error || !resolvedUserId) && isActive) {
+          const sessionResult = await supabase.auth.getSession()
+
+          if (sessionResult.error) {
+            console.error(
+              "[CommunityDashboardPage] Failed to resolve auth session:",
+              sessionResult.error.message || sessionResult.error,
+            )
+          }
+
+          resolvedUserId = sessionResult.data.session?.user?.id ?? ""
+        }
+
+        if (decodedTokenUserId && resolvedUserId && decodedTokenUserId !== resolvedUserId) {
+          console.warn("[CommunityDashboardPage] User ID mismatch detected", {
+            decodedTokenUserId,
+            supabaseAuthUserId: resolvedUserId,
+          })
+        }
+
+        if (!isActive) {
+          return
+        }
+
+        supabaseAuthUserIdRef.current = resolvedUserId
+        setCurrentUserId(resolvedUserId)
+        setIsAuthLoading(false)
+
+        if (resolvedUserId) {
+          didShowMissingSessionAlertRef.current = false
+        }
+      } catch (error) {
+        if (!isActive) {
+          return
+        }
+
+        setIsAuthLoading(false)
+        console.error("[CommunityDashboardPage] Auth sync failed:", error)
+      }
+    }
+
+    void syncAuthUser()
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isActive) {
+        return
+      }
+
+      const authUserId = session?.user?.id ?? ""
+      supabaseAuthUserIdRef.current = authUserId
+      setCurrentUserId(authUserId)
+      setIsAuthLoading(false)
+
+      if (authUserId) {
+        didShowMissingSessionAlertRef.current = false
+      }
+    })
+
+    return () => {
+      isActive = false
+      window.clearTimeout(authLoadingTimeout)
+      data.subscription.unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -262,6 +673,22 @@ export default function CommunityDashboardPage() {
 
     const loadLatestPosts = async () => {
       try {
+        const sessionResult = await supabase.auth.getSession()
+
+        if (sessionResult.error) {
+          console.error(
+            "[CommunityDashboardPage] Initial session check failed:",
+            sessionResult.error.message || sessionResult.error,
+          )
+        }
+
+        const sessionUserId = sessionResult.data.session?.user?.id ?? ""
+
+        if (isMounted && sessionUserId) {
+          supabaseAuthUserIdRef.current = sessionUserId
+          setCurrentUserId(sessionUserId)
+        }
+
         const { data, error } = await supabase
           .from("posts")
           .select("*")
@@ -276,11 +703,18 @@ export default function CommunityDashboardPage() {
           (data ?? []).map((postRow) => mapRealtimePostToAchievementPost(supabase, postRow as RealtimePostRow)),
         )
 
+        const postIds = mappedPosts.map((post) => post.id)
+        const likeCountsByPostId = await fetchLikeCountsByPostId(supabase, postIds)
+        const mappedPostsWithLikes = mappedPosts.map((post) => ({
+          ...post,
+          likes: likeCountsByPostId[post.id] ?? post.likes,
+        }))
+
         if (!isMounted) {
           return
         }
 
-        setPreviewPosts(mappedPosts)
+        setPreviewPosts(mappedPostsWithLikes)
       } catch (error) {
         console.error("[CommunityDashboardPage] Error loading preview posts:", error)
       }
@@ -288,8 +722,10 @@ export default function CommunityDashboardPage() {
 
     void loadLatestPosts()
 
+    // === Realtime Events Handled Here ===
+    // Reconcile count from DB on each event to avoid double add/subtract issues.
     const channel = supabase
-      .channel("community-dashboard-preview-posts")
+      .channel(COMMUNITY_SOCIAL_SYNC_CHANNEL)
       .on(
         "postgres_changes",
         {
@@ -315,6 +751,114 @@ export default function CommunityDashboardPage() {
           }
         },
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "post_likes",
+        },
+        async (payload: RealtimePostgresInsertPayload<RealtimeLikeRow>) => {
+          if (!isMounted) {
+            return
+          }
+
+          const likedPostId = pickString(payload.new, ["post_id"])
+          const likedByUserId = pickString(payload.new, ["user_id"])
+
+          if (!likedPostId) {
+            return
+          }
+
+          if (likedByUserId && supabaseAuthUserIdRef.current && likedByUserId === supabaseAuthUserIdRef.current) {
+            // Force immediate re-render of like state for self-events via flushSync
+            flushSync(() => {
+              setLikedPostIds((prev) => {
+                const next = new Set(prev)
+                next.add(likedPostId)
+                likedPostIdsRef.current = next
+                return next
+              })
+            })
+          }
+
+          // Counting from DB here keeps this preview aligned with the main feed.
+          try {
+            const confirmedLikeCount = await fetchLikeCountForPost(supabase, likedPostId)
+
+            if (!isMounted) {
+              return
+            }
+
+            setPreviewPosts((prevPosts) =>
+              prevPosts.map((post) =>
+                post.id === likedPostId
+                  ? {
+                      ...post,
+                      likes: confirmedLikeCount,
+                    }
+                  : post,
+              ),
+            )
+          } catch (error) {
+            console.error("[CommunityDashboardPage] Failed to sync like count from realtime INSERT:", error)
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "post_likes",
+        },
+        async (payload: RealtimePostgresDeletePayload<RealtimeLikeRow>) => {
+          if (!isMounted) {
+            return
+          }
+
+          const likedPostId = pickString(payload.old, ["post_id"])
+          const unlikedByUserId = pickString(payload.old, ["user_id"])
+
+          if (!likedPostId) {
+            return
+          }
+
+          if (unlikedByUserId && supabaseAuthUserIdRef.current && unlikedByUserId === supabaseAuthUserIdRef.current) {
+            // Force immediate re-render of unlike state for self-events via flushSync
+            flushSync(() => {
+              setLikedPostIds((prev) => {
+                const next = new Set(prev)
+                next.delete(likedPostId)
+                likedPostIdsRef.current = next
+                return next
+              })
+            })
+          }
+
+          // Same protection for unlikes, fetch true count from DB and paint it.
+          try {
+            const confirmedLikeCount = await fetchLikeCountForPost(supabase, likedPostId)
+
+            if (!isMounted) {
+              return
+            }
+
+            setPreviewPosts((prevPosts) =>
+              prevPosts.map((post) =>
+                post.id === likedPostId
+                  ? {
+                      ...post,
+                      likes: confirmedLikeCount,
+                    }
+                  : post,
+              ),
+            )
+          } catch (error) {
+            console.error("[CommunityDashboardPage] Failed to sync like count from realtime DELETE:", error)
+          }
+        },
+      )
       .subscribe()
 
     return () => {
@@ -322,6 +866,37 @@ export default function CommunityDashboardPage() {
       void supabase.removeChannel(channel)
     }
   }, [])
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient()
+
+    if (!supabase || isAuthLoading || !currentUserId || previewPosts.length === 0) {
+      return
+    }
+
+    let isActive = true
+
+    // Refreshing this set keeps heart color logic clean and predictable.
+    const syncLikedPostIds = async () => {
+      try {
+        const postIds = previewPosts.map((post) => post.id)
+        const likedPostIdsForUser = await fetchLikedPostIdsForUser(supabase, currentUserId, postIds)
+
+        if (isActive) {
+          setLikedPostIds(likedPostIdsForUser)
+          likedPostIdsRef.current = likedPostIdsForUser
+        }
+      } catch (error) {
+        console.error("[CommunityDashboardPage] Error syncing liked posts for auth user:", error)
+      }
+    }
+
+    void syncLikedPostIds()
+
+    return () => {
+      isActive = false
+    }
+  }, [currentUserId, isAuthLoading, previewPosts])
 
   return (
     <div className="space-y-6">
@@ -371,7 +946,12 @@ export default function CommunityDashboardPage() {
                 View All
               </Link>
             </div>
-            <AchievementFeed posts={previewPosts} />
+            <AchievementFeed
+              posts={previewPosts}
+              onLike={handleLike}
+              likedPostIds={likedPostIds}
+              pendingLikePostIds={pendingLikePostIds}
+            />
           </div>
         </section>
 

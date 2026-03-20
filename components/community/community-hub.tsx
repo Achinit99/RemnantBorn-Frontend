@@ -1,3 +1,7 @@
+/**
+ * What: Composite community hub layout that stitches profile, bounties, feed, and chat.
+ * Why: Serves as a reusable all-in-one community view for integrated rendering scenarios.
+ */
 "use client"
 
 import { useState } from "react"

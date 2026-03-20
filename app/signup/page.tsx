@@ -1,3 +1,7 @@
+/**
+ * What: Multi-step signup page for account creation and consent checks.
+ * Why: Splits onboarding into easy steps so validation stays readable and user-friendly.
+ */
 "use client"
 
 import { Menu, User, X } from "lucide-react"
@@ -25,6 +29,7 @@ export default function SignupPage() {
   const [successMessage, setSuccessMessage] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Step-by-step signup flow: details -> password check -> consent -> API create account.
   const handleSignupSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setErrorMessage("")

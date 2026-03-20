@@ -1,3 +1,7 @@
+/**
+ * What: Sticky community navigation bar with active-route highlighting and logout action.
+ * Why: Keeps route switching and session exit controls consistent across community pages.
+ */
 "use client"
 
 import { CircleUserRound, LogOut, Menu, ShieldCheck, X } from "lucide-react"
@@ -17,6 +21,7 @@ export function CommunityNavbar({ links }: CommunityNavbarProps) {
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
+  // Active-link helper for desktop and mobile nav states.
   const isActivePath = (href: string) => {
     if (href === "/community") {
       return pathname === "/community"
@@ -25,6 +30,7 @@ export function CommunityNavbar({ links }: CommunityNavbarProps) {
     return pathname === href || pathname.startsWith(`${href}/`)
   }
 
+  // Simple logout path: clear local auth footprint, then push user to login.
   const handleLogout = () => {
     clearClientAuthSession()
     router.push("/login")

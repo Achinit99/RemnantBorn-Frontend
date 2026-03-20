@@ -1,15 +1,26 @@
+/**
+ * What: Reusable social feed list that renders posts and interaction controls.
+ * Why: Gives dashboard and feed pages one shared UI source for like-state rendering.
+ */
 import { Heart, MessageSquare, Share2 } from "lucide-react"
 
 import type { AchievementPost } from "@/components/community/types"
 
 interface AchievementFeedProps {
   posts: AchievementPost[]
+  onLike?: (postId: string) => void
+  likedPostIds?: Set<string>
+  pendingLikePostIds?: Set<string>
 }
 
-export function AchievementFeed({ posts }: AchievementFeedProps) {
+export function AchievementFeed({ posts, onLike, likedPostIds, pendingLikePostIds }: AchievementFeedProps) {
   return (
     <section className="space-y-4">
-      {posts.map((post) => (
+      {posts.map((post) => {
+        // Heart color source of truth lives here: if post id is in the set, show liked style.
+        const isLiked = Boolean(likedPostIds?.has(post.id))
+
+        return (
         <article key={post.id} className="rounded-2xl border border-[#1c2f33] bg-[#041419]/85 p-5 sm:p-6">
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 overflow-hidden rounded-full border border-[#1d4f5b] bg-[#071a1f]">
@@ -30,10 +41,17 @@ export function AchievementFeed({ posts }: AchievementFeedProps) {
           <p className="mt-4 font-sans text-base leading-relaxed text-[#d4dee1]">{post.content}</p>
 
           <div className="mt-4 flex items-center gap-5 text-[#8d9fa3]">
-            <span className="inline-flex items-center gap-2 text-sm">
-              <Heart size={16} />
+            {/* Like button UI hook: click toggles in parent, this component only reflects state. */}
+            <button
+              type="button"
+              onClick={() => onLike?.(post.id)}
+              disabled={!onLike || pendingLikePostIds?.has(post.id)}
+              className="inline-flex items-center gap-2 text-sm transition-colors hover:text-[#ff620f] disabled:cursor-not-allowed disabled:opacity-70"
+              aria-label={isLiked ? "Unlike post" : "Like post"}
+            >
+              <Heart size={16} className={isLiked ? "fill-red-500 text-red-500" : "text-gray-400"} />
               {post.likes}
-            </span>
+            </button>
             <span className="inline-flex items-center gap-2 text-sm">
               <MessageSquare size={16} />
               {post.comments}
@@ -44,7 +62,7 @@ export function AchievementFeed({ posts }: AchievementFeedProps) {
             </span>
           </div>
         </article>
-      ))}
+      )})}
     </section>
   )
 }

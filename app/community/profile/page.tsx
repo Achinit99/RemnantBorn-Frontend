@@ -1,3 +1,7 @@
+/**
+ * What: Player profile page with account-backed profile fetch and daily relic panel.
+ * Why: Keeps profile loading, auth fallback, and render states easy to follow in one file.
+ */
 "use client"
 
 import axios from "axios"
@@ -49,6 +53,7 @@ export default function CommunityProfilePage() {
   useEffect(() => {
     let isMounted = true
 
+    // Quick auth check first; if token is missing we bounce straight to login.
     const accessToken = getStoredAccessToken()
 
     if (!accessToken) {
@@ -59,6 +64,7 @@ export default function CommunityProfilePage() {
       }
     }
 
+    // Profile fetch block: load from API, normalize UI state, and handle auth expiry.
     const fetchProfile = async () => {
       try {
         const userProfile = await getUserProfile()
