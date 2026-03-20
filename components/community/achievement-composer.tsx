@@ -1,3 +1,7 @@
+/**
+ * What: Post composer card for creating a new community achievement update.
+ * Why: Keeps textarea, submit state, and error display packaged into one reusable block.
+ */
 "use client"
 
 import { Send } from "lucide-react"
@@ -18,6 +22,7 @@ export function AchievementComposer({
   isSubmitting = false,
   errorMessage,
 }: AchievementComposerProps) {
+  // Small submit gate so we don't trigger duplicate post calls.
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 

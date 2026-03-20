@@ -1,3 +1,7 @@
+/**
+ * What: Profile service layer for fetching profile data and mapping DTOs into UI shape.
+ * Why: Separates API payload quirks from page/component rendering logic.
+ */
 import { authApi } from "@/lib/auth-api"
 import { getStoredAccessToken } from "@/lib/auth"
 import type { PlayerProfile } from "@/components/community/types"
@@ -49,6 +53,7 @@ function extractUserProfile(payload: ProfileResponseDto | UserProfileEnvelope): 
 }
 
 export function mapProfileResponseToPlayerProfile(profile: ProfileResponseDto): PlayerProfile {
+  // Central profile normalizer so UI always gets predictable fallback-safe values.
   return {
     username: normalizeText(profile.username, "Unknown Player"),
     email: normalizeText(profile.email, "No email provided"),
@@ -61,6 +66,7 @@ export function mapProfileResponseToPlayerProfile(profile: ProfileResponseDto): 
 }
 
 export async function getUserProfile(): Promise<ProfileResponseDto> {
+  // Token-aware profile fetch used by dashboard/profile pages.
   const accessToken = getStoredAccessToken()
 
   if (!accessToken) {

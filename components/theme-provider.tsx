@@ -1,3 +1,7 @@
+/**
+ * What: Thin wrapper around next-themes provider for app-wide theme context.
+ * Why: Centralizes theme-provider usage so root wiring stays clean.
+ */
 'use client'
 
 import * as React from 'react'

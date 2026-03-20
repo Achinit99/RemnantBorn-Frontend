@@ -1,3 +1,7 @@
+/**
+ * What: Shared auth helpers for cookie/token checks, redirects, and client session cleanup.
+ * Why: Keeps auth-related constants and safety helpers in one predictable module.
+ */
 export const AUTH_COOKIE_CANDIDATES = [
   "rb_access_token",
   "access_token",
@@ -29,6 +33,7 @@ export function buildLoginRedirectPath(nextPath: string): string {
 }
 
 export function sanitizeNextPath(nextPath: string | null | undefined): string {
+  // Guarding redirects here so only safe in-app paths are allowed.
   if (!nextPath) {
     return DEFAULT_AUTH_REDIRECT_PATH
   }
@@ -71,6 +76,7 @@ export function getStoredAccessToken(): string | null {
 }
 
 export function clearClientAuthSession(): void {
+  // Full local sign-out cleanup: both localStorage token and all known auth cookies.
   if (typeof window !== "undefined") {
     window.localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY)
   }

@@ -1,3 +1,7 @@
+/**
+ * What: Profile sidebar card for avatar, stats, and short bio presentation.
+ * Why: Reuses a single profile layout in dashboard and profile detail views.
+ */
 import { Pencil } from "lucide-react"
 
 import type { PlayerProfile } from "@/components/community/types"

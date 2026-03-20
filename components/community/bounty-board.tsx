@@ -1,3 +1,7 @@
+/**
+ * What: Bounty list card that shows mission title, reward, and difficulty badge.
+ * Why: Reuses one clean layout for both dashboard previews and full bounty page.
+ */
 import { Target } from "lucide-react"
 
 import type { Bounty } from "@/components/community/types"

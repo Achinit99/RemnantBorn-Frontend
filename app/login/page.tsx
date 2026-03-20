@@ -1,3 +1,7 @@
+/**
+ * What: Login screen with backend auth call and Supabase browser-session handshake.
+ * Why: Keeps token storage, cookie setup, and post-login redirect logic in one flow.
+ */
 "use client"
 
 import { Menu, User, X } from "lucide-react"
@@ -11,6 +15,7 @@ import {
   createAuthCookieString,
   sanitizeNextPath,
 } from "@/lib/auth"
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 export default function LoginPage() {
   const searchParams = useSearchParams()
@@ -20,6 +25,7 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Main auth submit flow: API login, Supabase session sync, then redirect.
   const handleLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
@@ -34,9 +40,38 @@ export default function LoginPage() {
       })
 
       const accessToken = response.data?.access_token
+      const refreshToken = response.data?.refresh_token
 
       if (typeof accessToken !== "string" || accessToken.length === 0) {
         throw new Error("Login succeeded, but no access token was returned.")
+      }
+
+      // This keeps backend auth and Supabase auth in step, so community features work immediately.
+      const supabase = getSupabaseBrowserClient()
+
+      if (supabase) {
+        if (typeof refreshToken === "string" && refreshToken.length > 0) {
+          const { error: setSessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+
+          if (setSessionError) {
+            throw new Error(`Unable to establish Supabase session: ${setSessionError.message}`)
+          }
+        } else {
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          })
+
+          if (signInError) {
+            throw new Error(`Unable to establish Supabase session: ${signInError.message}`)
+          }
+        }
+
+        const sessionResult = await supabase.auth.getSession()
+        console.log("Supabase session after login:", sessionResult.data.session)
       }
 
       localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, accessToken)

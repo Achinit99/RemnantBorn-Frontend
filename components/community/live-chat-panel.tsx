@@ -1,3 +1,7 @@
+/**
+ * What: Live chat panel UI with message list and local draft input.
+ * Why: Keeps chat display and message composer behavior in one reusable card.
+ */
 "use client"
 
 import { MessageCircle, SendHorizontal } from "lucide-react"
@@ -19,6 +23,7 @@ export function LiveChatPanel({ messages }: LiveChatPanelProps) {
         <h2 className="font-sans text-xl tracking-[0.08em] text-[#ff620f]">Live Chat</h2>
       </div>
 
+      {/* Chat list rendering block */}
       <div className="mt-4 max-h-72 space-y-4 overflow-y-auto rounded-xl border border-[#153038] bg-[#071a1f] p-4">
         {messages.map((message) => (
           <article key={message.id}>
@@ -29,6 +34,7 @@ export function LiveChatPanel({ messages }: LiveChatPanelProps) {
         ))}
       </div>
 
+      {/* Draft submit block (currently local-only reset) */}
       <form
         className="mt-4 flex items-center gap-2"
         onSubmit={(event) => {

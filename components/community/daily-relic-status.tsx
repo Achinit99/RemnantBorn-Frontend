@@ -1,3 +1,7 @@
+/**
+ * What: Daily relic status card with a simple claim-state visual.
+ * Why: Gives the community area a quick daily progression/status highlight.
+ */
 import { Sparkles } from "lucide-react"
 
 import type { DailyRelic } from "@/components/community/types"

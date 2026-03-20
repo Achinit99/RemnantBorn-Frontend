@@ -1,3 +1,7 @@
+/**
+ * What: Shared mock data used across community pages and preview components.
+ * Why: Centralizes demo/test content so UI routes stay consistent while backend wiring evolves.
+ */
 import type {
   AchievementPost,
   Bounty,

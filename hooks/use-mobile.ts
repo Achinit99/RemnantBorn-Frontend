@@ -1,3 +1,7 @@
+/**
+ * What: Small responsive hook that tracks whether viewport is in mobile range.
+ * Why: Gives components one shared mobile check instead of repeated media-query wiring.
+ */
 import * as React from 'react'
 
 const MOBILE_BREAKPOINT = 768

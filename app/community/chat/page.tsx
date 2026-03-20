@@ -1,3 +1,7 @@
+/**
+ * What: Community chat page that shows the full live-chat stream.
+ * Why: Separates chat into its own route so users can focus on conversations.
+ */
 import { liveChatMessages } from "@/app/community/mock-data"
 import { LiveChatPanel } from "@/components/community/live-chat-panel"
 

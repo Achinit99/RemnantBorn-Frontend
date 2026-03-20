@@ -1,3 +1,7 @@
+/**
+ * What: Axios auth client and error message normalizer for backend calls.
+ * Why: Gives pages/services one clean place for auth API config and user-friendly errors.
+ */
 import axios from "axios"
 
 const apiBaseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "")
@@ -15,6 +19,7 @@ type ApiErrorPayload = {
 }
 
 export function getApiErrorMessage(error: unknown, fallbackMessage: string): string {
+  // Friendly error extraction chain: API payload first, runtime error next, fallback last.
   if (axios.isAxiosError<ApiErrorPayload>(error)) {
     const message = error.response?.data?.message
 

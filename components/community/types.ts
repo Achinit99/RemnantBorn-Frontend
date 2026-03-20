@@ -1,3 +1,7 @@
+/**
+ * What: Shared TypeScript contracts for community pages and components.
+ * Why: Keeps data shapes consistent across UI and service mapping logic.
+ */
 export interface NavLink {
   label: string
   href: string

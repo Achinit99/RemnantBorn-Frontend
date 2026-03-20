@@ -1,3 +1,7 @@
+/**
+ * What: Shared layout for all community pages with auth guard and navigation shell.
+ * Why: Protects private routes and keeps the community visual frame consistent.
+ */
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
@@ -10,6 +14,7 @@ export default async function CommunityLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // Server-side auth gate before rendering any community content.
   const cookieStore = await cookies()
   const isAuthenticated = hasAuthCookie(cookieStore)
 
