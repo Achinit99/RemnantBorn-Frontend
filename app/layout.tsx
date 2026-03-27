@@ -5,7 +5,7 @@
 import type { Metadata } from 'next'
 import { Cinzel, Cormorant_Garamond, Inter } from 'next/font/google'
 import './globals.css'
-import { Toaster } from '@/components/ui/toaster'
+import { Toaster } from '@/components/ui/sonner'
 
 const cinzel = Cinzel({ 
   subsets: ["latin"],
@@ -58,7 +58,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${cinzel.variable} ${cormorant.variable} ${inter.variable} antialiased`}>
         {children}
-        <Toaster />
+        <Toaster position="top-right" />
       </body>
     </html>
   )

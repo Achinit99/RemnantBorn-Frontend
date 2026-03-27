@@ -9,7 +9,12 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { flushSync } from "react-dom"
 import { useRouter } from "next/navigation"
-import type { RealtimePostgresDeletePayload, RealtimePostgresInsertPayload, SupabaseClient } from "@supabase/supabase-js"
+import type {
+  RealtimePostgresDeletePayload,
+  RealtimePostgresInsertPayload,
+  RealtimePostgresUpdatePayload,
+  SupabaseClient,
+} from "@supabase/supabase-js"
 
 import {
   dailyRelic,
@@ -135,52 +140,6 @@ function getErrorCode(error: unknown): string {
   }
 
   return ""
-}
-
-async function fetchLikeCountsByPostId(supabase: SupabaseClient, postIds: string[]): Promise<Record<string, number>> {
-  if (postIds.length === 0) {
-    return {}
-  }
-
-  const { data, error } = await supabase
-    .from("post_likes")
-    .select("post_id")
-    .in("post_id", postIds)
-
-  if (error) {
-    throw error
-  }
-
-  const countsByPostId: Record<string, number> = {}
-
-  for (const row of data ?? []) {
-    const postId = pickString(row as RealtimeLikeRow, ["post_id"])
-
-    if (!postId) {
-      continue
-    }
-
-    countsByPostId[postId] = (countsByPostId[postId] ?? 0) + 1
-  }
-
-  return countsByPostId
-}
-
-async function fetchLikeCountForPost(supabase: SupabaseClient, postId: string): Promise<number> {
-  if (!postId) {
-    return 0
-  }
-
-  const { count, error } = await supabase
-    .from("post_likes")
-    .select("post_id", { count: "exact", head: true })
-    .eq("post_id", postId)
-
-  if (error) {
-    throw error
-  }
-
-  return count ?? 0
 }
 
 async function fetchLikedPostIdsForUser(supabase: SupabaseClient, userId: string, postIds: string[]): Promise<Set<string>> {
@@ -351,40 +310,18 @@ export default function CommunityDashboardPage() {
 
     const sessionResult = await supabase.auth.getSession()
 
-    if (sessionResult.error) {
-      console.error(
-        "[CommunityDashboardPage] Failed to get session in handleLike:",
-        sessionResult.error.message || sessionResult.error,
-      )
-    }
-
     const sessionUserId = sessionResult.data.session?.user?.id ?? ""
     const {
       data: { user },
-      error: getUserError,
     } = await supabase.auth.getUser()
 
-    if (getUserError) {
-      console.error(
-        "[CommunityDashboardPage] Failed to get user in handleLike:",
-        getUserError.message || getUserError,
-      )
-    }
-
-    console.log("Full Auth User Object:", user)
-
     const userId = sessionUserId || user?.id || supabaseAuthUserIdRef.current || currentUserId
-    console.log("Current User ID in handleLike:", userId)
 
     if (!userId) {
-      console.error("[AuthDebug] No user found in Supabase Auth")
-
       if (!didShowMissingSessionAlertRef.current) {
         didShowMissingSessionAlertRef.current = true
         window.alert("Please log in to like posts")
       }
-
-      console.error("[CommunityDashboardPage] Missing Supabase auth user id for like toggle")
       return
     }
 
@@ -444,24 +381,8 @@ export default function CommunityDashboardPage() {
         throw error
       }
 
-      if (!shouldLike) {
-        // This part handles the UI sync after unlike so preview count stays correct.
-        try {
-          const confirmedLikeCount = await fetchLikeCountForPost(supabase, postId)
-          setPreviewPosts((prevPosts) =>
-            prevPosts.map((post) =>
-              post.id === postId
-                ? {
-                    ...post,
-                    likes: confirmedLikeCount,
-                  }
-                : post,
-            ),
-          )
-        } catch (syncError) {
-          console.error("[CommunityDashboardPage] Failed to sync like count after unlike:", syncError)
-        }
-      }
+      // Unlike successful. Realtime DELETE listener will handle count decrement optimistically.
+      // No need to fetch confirmed count as it would hit RLS and cause noise.
     } catch (error) {
       if (shouldLike && getErrorCode(error) === "23505") {
         // Already liked by this user. Roll back optimistic count, but keep liked state.
@@ -675,13 +596,6 @@ export default function CommunityDashboardPage() {
       try {
         const sessionResult = await supabase.auth.getSession()
 
-        if (sessionResult.error) {
-          console.error(
-            "[CommunityDashboardPage] Initial session check failed:",
-            sessionResult.error.message || sessionResult.error,
-          )
-        }
-
         const sessionUserId = sessionResult.data.session?.user?.id ?? ""
 
         if (isMounted && sessionUserId) {
@@ -703,18 +617,12 @@ export default function CommunityDashboardPage() {
           (data ?? []).map((postRow) => mapRealtimePostToAchievementPost(supabase, postRow as RealtimePostRow)),
         )
 
-        const postIds = mappedPosts.map((post) => post.id)
-        const likeCountsByPostId = await fetchLikeCountsByPostId(supabase, postIds)
-        const mappedPostsWithLikes = mappedPosts.map((post) => ({
-          ...post,
-          likes: likeCountsByPostId[post.id] ?? post.likes,
-        }))
-
         if (!isMounted) {
           return
         }
 
-        setPreviewPosts(mappedPostsWithLikes)
+        // Supabase trigger keeps this column up to date; use posts.likes as initial truth.
+        setPreviewPosts(mappedPosts)
       } catch (error) {
         console.error("[CommunityDashboardPage] Error loading preview posts:", error)
       }
@@ -754,6 +662,39 @@ export default function CommunityDashboardPage() {
       .on(
         "postgres_changes",
         {
+          event: "UPDATE",
+          schema: "public",
+          table: "posts",
+        },
+        (payload: RealtimePostgresUpdatePayload<RealtimePostRow>) => {
+          if (!isMounted) {
+            return
+          }
+
+          const updatedPostId = pickString(payload.new, ["id"])
+
+          if (!updatedPostId) {
+            return
+          }
+
+          const authoritativeLikeCount = pickNumber(payload.new, ["likes", "like_count", "likes_count"])
+
+          // DB trigger-backed posts.likes is canonical; reconcile optimistic local counts to it.
+          setPreviewPosts((prevPosts) =>
+            prevPosts.map((post) =>
+              post.id === updatedPostId
+                ? {
+                    ...post,
+                    likes: authoritativeLikeCount,
+                  }
+                : post,
+            ),
+          )
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
           event: "INSERT",
           schema: "public",
           table: "post_likes",
@@ -770,7 +711,10 @@ export default function CommunityDashboardPage() {
             return
           }
 
-          if (likedByUserId && supabaseAuthUserIdRef.current && likedByUserId === supabaseAuthUserIdRef.current) {
+          const authUserId = supabaseAuthUserIdRef.current
+          const isSelfLike = !!likedByUserId && !!authUserId && likedByUserId === authUserId
+
+          if (isSelfLike) {
             // Force immediate re-render of like state for self-events via flushSync
             flushSync(() => {
               setLikedPostIds((prev) => {
@@ -782,27 +726,12 @@ export default function CommunityDashboardPage() {
             })
           }
 
-          // Counting from DB here keeps this preview aligned with the main feed.
-          try {
-            const confirmedLikeCount = await fetchLikeCountForPost(supabase, likedPostId)
-
-            if (!isMounted) {
-              return
-            }
-
-            setPreviewPosts((prevPosts) =>
-              prevPosts.map((post) =>
-                post.id === likedPostId
-                  ? {
-                      ...post,
-                      likes: confirmedLikeCount,
-                    }
-                  : post,
-              ),
-            )
-          } catch (error) {
-            console.error("[CommunityDashboardPage] Failed to sync like count from realtime INSERT:", error)
+          // Optimistic update for snappy UI; posts.likes remains source of truth via trigger-backed updates.
+          if (!isMounted) {
+            return
           }
+
+          setPreviewPosts((prevPosts) => incrementPostLike(prevPosts, likedPostId, 1))
         },
       )
       .on(
@@ -836,27 +765,12 @@ export default function CommunityDashboardPage() {
             })
           }
 
-          // Same protection for unlikes, fetch true count from DB and paint it.
-          try {
-            const confirmedLikeCount = await fetchLikeCountForPost(supabase, likedPostId)
-
-            if (!isMounted) {
-              return
-            }
-
-            setPreviewPosts((prevPosts) =>
-              prevPosts.map((post) =>
-                post.id === likedPostId
-                  ? {
-                      ...post,
-                      likes: confirmedLikeCount,
-                    }
-                  : post,
-              ),
-            )
-          } catch (error) {
-            console.error("[CommunityDashboardPage] Failed to sync like count from realtime DELETE:", error)
+          // Optimistic update for snappy UI; posts.likes remains source of truth via trigger-backed updates.
+          if (!isMounted) {
+            return
           }
+
+          setPreviewPosts((prevPosts) => incrementPostLike(prevPosts, likedPostId, -1))
         },
       )
       .subscribe()

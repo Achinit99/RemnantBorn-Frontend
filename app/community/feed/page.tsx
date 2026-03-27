@@ -7,6 +7,7 @@
 import axios from "axios"
 import { useEffect, useRef, useState } from "react"
 import { flushSync } from "react-dom"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import type { RealtimePostgresDeletePayload, RealtimePostgresInsertPayload, SupabaseClient } from "@supabase/supabase-js"
 
 import { AchievementComposer } from "@/components/community/achievement-composer"
@@ -286,6 +287,9 @@ async function mapRealtimePostToAchievementPost(supabase: SupabaseClient, row: R
 }
 
 export default function CommunityFeedPage() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [postDraft, setPostDraft] = useState("")
   const [posts, setPosts] = useState<AchievementPost[]>([])
   const [currentUserId, setCurrentUserId] = useState("")
@@ -294,6 +298,7 @@ export default function CommunityFeedPage() {
   const [pendingLikePostIds, setPendingLikePostIds] = useState<Set<string>>(new Set())
   const [isPosting, setIsPosting] = useState(false)
   const [postErrorMessage, setPostErrorMessage] = useState("")
+  const [highlightedPostId, setHighlightedPostId] = useState("")
   const supabaseAuthUserIdRef = useRef("")
   const didShowMissingSessionAlertRef = useRef(false)
   const likedPostIdsRef = useRef<Set<string>>(new Set())
@@ -850,6 +855,46 @@ export default function CommunityFeedPage() {
     }
   }, [currentUserId, isAuthLoading, posts])
 
+  useEffect(() => {
+    const deepLinkedPostId = searchParams.get("postId")?.trim() ?? ""
+
+    if (!deepLinkedPostId || posts.length === 0) {
+      return
+    }
+
+    const postExists = posts.some((post) => post.id === deepLinkedPostId)
+
+    if (!postExists) {
+      const nextParams = new URLSearchParams(searchParams.toString())
+      nextParams.delete("postId")
+      const nextQuery = nextParams.toString()
+      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
+      return
+    }
+
+    const scrollTarget = document.getElementById(deepLinkedPostId)
+
+    if (!scrollTarget) {
+      return
+    }
+
+    scrollTarget.scrollIntoView({ behavior: "smooth", block: "center" })
+    setHighlightedPostId(deepLinkedPostId)
+
+    const clearHighlightTimeout = window.setTimeout(() => {
+      setHighlightedPostId((current) => (current === deepLinkedPostId ? "" : current))
+    }, 3000)
+
+    const nextParams = new URLSearchParams(searchParams.toString())
+    nextParams.delete("postId")
+    const nextQuery = nextParams.toString()
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
+
+    return () => {
+      window.clearTimeout(clearHighlightTimeout)
+    }
+  }, [pathname, posts, router, searchParams])
+
   return (
     <div className="space-y-4">
       <header>
@@ -874,6 +919,7 @@ export default function CommunityFeedPage() {
         onLike={handleLike}
         likedPostIds={likedPostIds}
         pendingLikePostIds={pendingLikePostIds}
+        highlightedPostId={highlightedPostId}
       />
     </div>
   )
