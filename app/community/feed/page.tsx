@@ -5,10 +5,15 @@
 "use client"
 
 import axios from "axios"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { flushSync } from "react-dom"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import type { RealtimePostgresDeletePayload, RealtimePostgresInsertPayload, SupabaseClient } from "@supabase/supabase-js"
+import type {
+  RealtimePostgresDeletePayload,
+  RealtimePostgresInsertPayload,
+  RealtimePostgresUpdatePayload,
+  SupabaseClient,
+} from "@supabase/supabase-js"
 
 import { AchievementComposer } from "@/components/community/achievement-composer"
 import { AchievementFeed } from "@/components/community/achievement-feed"
@@ -18,8 +23,10 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 type RealtimePostRow = Record<string, unknown>
 type RealtimeLikeRow = Record<string, unknown>
+type RealtimeCommentRow = Record<string, unknown>
 
 const COMMUNITY_SOCIAL_SYNC_CHANNEL = "community-social-sync"
+const FEED_POSTS_PAGE_SIZE = 10
 
 function mergePosts(primaryPosts: AchievementPost[], secondaryPosts: AchievementPost[]): AchievementPost[] {
   const mergedPosts = [...primaryPosts, ...secondaryPosts]
@@ -128,6 +135,19 @@ function incrementPostLike(posts: AchievementPost[], postId: string, amount: num
     return {
       ...post,
       likes: Math.max(0, post.likes + amount),
+    }
+  })
+}
+
+function incrementPostComment(posts: AchievementPost[], postId: string, amount: number): AchievementPost[] {
+  return posts.map((post) => {
+    if (post.id !== postId) {
+      return post
+    }
+
+    return {
+      ...post,
+      comments: Math.max(0, post.comments + amount),
     }
   })
 }
@@ -286,6 +306,30 @@ async function mapRealtimePostToAchievementPost(supabase: SupabaseClient, row: R
   }
 }
 
+async function fetchPostsPage(supabase: SupabaseClient, from: number, to: number): Promise<AchievementPost[]> {
+  const { data, error } = await supabase
+    .from("posts")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .range(from, to)
+
+  if (error) {
+    throw error
+  }
+
+  const mappedPosts = await Promise.all(
+    (data ?? []).map((postRow) => mapRealtimePostToAchievementPost(supabase, postRow as RealtimePostRow)),
+  )
+
+  const postIds = mappedPosts.map((post) => post.id)
+  const likeCountsByPostId = await fetchLikeCountsByPostId(supabase, postIds)
+
+  return mappedPosts.map((post) => ({
+    ...post,
+    likes: likeCountsByPostId[post.id] ?? post.likes,
+  }))
+}
+
 export default function CommunityFeedPage() {
   const router = useRouter()
   const pathname = usePathname()
@@ -299,6 +343,10 @@ export default function CommunityFeedPage() {
   const [isPosting, setIsPosting] = useState(false)
   const [postErrorMessage, setPostErrorMessage] = useState("")
   const [highlightedPostId, setHighlightedPostId] = useState("")
+  const [forceOpenCommentPostId, setForceOpenCommentPostId] = useState("")
+  const [isLoadingMorePosts, setIsLoadingMorePosts] = useState(false)
+  const [hasMorePosts, setHasMorePosts] = useState(true)
+  const [nextPostsRangeStart, setNextPostsRangeStart] = useState(0)
   const supabaseAuthUserIdRef = useRef("")
   const didShowMissingSessionAlertRef = useRef(false)
   const likedPostIdsRef = useRef<Set<string>>(new Set())
@@ -616,6 +664,39 @@ export default function CommunityFeedPage() {
     }
   }
 
+  const loadMorePosts = useCallback(async () => {
+    if (isLoadingMorePosts || !hasMorePosts) {
+      return
+    }
+
+    const supabase = getSupabaseBrowserClient()
+
+    if (!supabase) {
+      return
+    }
+
+    setIsLoadingMorePosts(true)
+
+    try {
+      const from = nextPostsRangeStart
+      const to = from + FEED_POSTS_PAGE_SIZE - 1
+      const nextPagePosts = await fetchPostsPage(supabase, from, to)
+
+      if (nextPagePosts.length === 0) {
+        setHasMorePosts(false)
+        return
+      }
+
+      setPosts((prevPosts) => mergePosts(prevPosts, nextPagePosts))
+      setNextPostsRangeStart(from + nextPagePosts.length)
+      setHasMorePosts(nextPagePosts.length === FEED_POSTS_PAGE_SIZE)
+    } catch (error) {
+      console.error("[CommunityFeedPage] Error loading more posts:", error)
+    } finally {
+      setIsLoadingMorePosts(false)
+    }
+  }, [hasMorePosts, isLoadingMorePosts, nextPostsRangeStart])
+
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()
 
@@ -641,31 +722,15 @@ export default function CommunityFeedPage() {
           setCurrentUserId(sessionUserId)
         }
 
-        const { data, error } = await supabase
-          .from("posts")
-          .select("*")
-          .order("created_at", { ascending: false })
-
-        if (error) {
-          throw error
-        }
-
-        const mappedPosts = await Promise.all(
-          (data ?? []).map((postRow) => mapRealtimePostToAchievementPost(supabase, postRow as RealtimePostRow)),
-        )
-
-        const postIds = mappedPosts.map((post) => post.id)
-        const likeCountsByPostId = await fetchLikeCountsByPostId(supabase, postIds)
-        const mappedPostsWithLikes = mappedPosts.map((post) => ({
-          ...post,
-          likes: likeCountsByPostId[post.id] ?? post.likes,
-        }))
+        const firstPagePosts = await fetchPostsPage(supabase, 0, FEED_POSTS_PAGE_SIZE - 1)
 
         if (!isSubscribed) {
           return
         }
 
-        setPosts(mappedPostsWithLikes)
+        setPosts(firstPagePosts)
+        setNextPostsRangeStart(firstPagePosts.length)
+        setHasMorePosts(firstPagePosts.length === FEED_POSTS_PAGE_SIZE)
       } catch (error) {
         console.error("[CommunityFeedPage] Error loading initial posts:", error)
       }
@@ -704,6 +769,85 @@ export default function CommunityFeedPage() {
           } catch (error) {
             console.error("[CommunityFeedPage] Error processing realtime payload:", error)
           }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "posts",
+        },
+        (payload: RealtimePostgresUpdatePayload<RealtimePostRow>) => {
+          if (!isSubscribed) {
+            return
+          }
+
+          const updatedPostId = pickString(payload.new, ["id"])
+
+          if (!updatedPostId) {
+            return
+          }
+
+          const authoritativeLikeCount = pickNumber(payload.new, ["likes", "like_count", "likes_count"])
+          const authoritativeCommentCount = pickNumber(payload.new, ["comments", "comment_count", "comments_count"])
+
+          // Trigger-backed posts columns are canonical; reconcile local optimistic values.
+          setPosts((prevPosts) =>
+            prevPosts.map((post) =>
+              post.id === updatedPostId
+                ? {
+                    ...post,
+                    likes: authoritativeLikeCount,
+                    comments: authoritativeCommentCount,
+                  }
+                : post,
+            ),
+          )
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "comments",
+        },
+        (payload: RealtimePostgresInsertPayload<RealtimeCommentRow>) => {
+          if (!isSubscribed) {
+            return
+          }
+
+          const commentedPostId = pickString(payload.new, ["post_id"])
+
+          if (!commentedPostId) {
+            return
+          }
+
+          // Optimistic live bump for all viewers; UPDATE on posts will reconcile authoritative count.
+          setPosts((prevPosts) => incrementPostComment(prevPosts, commentedPostId, 1))
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "comments",
+        },
+        (payload: RealtimePostgresDeletePayload<RealtimeCommentRow>) => {
+          if (!isSubscribed) {
+            return
+          }
+
+          const commentedPostId = pickString(payload.old, ["post_id"])
+
+          if (!commentedPostId) {
+            return
+          }
+
+          // Optimistic live decrement for all viewers; UPDATE on posts will reconcile authoritative count.
+          setPosts((prevPosts) => incrementPostComment(prevPosts, commentedPostId, -1))
         },
       )
       .on(
@@ -857,6 +1001,7 @@ export default function CommunityFeedPage() {
 
   useEffect(() => {
     const deepLinkedPostId = searchParams.get("postId")?.trim() ?? ""
+    const shouldOpenComments = searchParams.get("openComments") === "1"
 
     if (!deepLinkedPostId || posts.length === 0) {
       return
@@ -867,6 +1012,7 @@ export default function CommunityFeedPage() {
     if (!postExists) {
       const nextParams = new URLSearchParams(searchParams.toString())
       nextParams.delete("postId")
+      nextParams.delete("openComments")
       const nextQuery = nextParams.toString()
       router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
       return
@@ -881,12 +1027,17 @@ export default function CommunityFeedPage() {
     scrollTarget.scrollIntoView({ behavior: "smooth", block: "center" })
     setHighlightedPostId(deepLinkedPostId)
 
+    if (shouldOpenComments) {
+      setForceOpenCommentPostId(deepLinkedPostId)
+    }
+
     const clearHighlightTimeout = window.setTimeout(() => {
       setHighlightedPostId((current) => (current === deepLinkedPostId ? "" : current))
     }, 3000)
 
     const nextParams = new URLSearchParams(searchParams.toString())
     nextParams.delete("postId")
+    nextParams.delete("openComments")
     const nextQuery = nextParams.toString()
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
 
@@ -920,6 +1071,16 @@ export default function CommunityFeedPage() {
         likedPostIds={likedPostIds}
         pendingLikePostIds={pendingLikePostIds}
         highlightedPostId={highlightedPostId}
+        forceOpenCommentPostId={forceOpenCommentPostId}
+        onForceOpenCommentPostHandled={() => {
+          setForceOpenCommentPostId("")
+        }}
+        onLoadMorePosts={() => {
+          void loadMorePosts()
+        }}
+        isLoadingMorePosts={isLoadingMorePosts}
+        hasMorePosts={hasMorePosts}
+        showEndOfFeedMessage={!hasMorePosts && posts.length > 0}
       />
     </div>
   )

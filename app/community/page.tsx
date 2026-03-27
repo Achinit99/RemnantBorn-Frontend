@@ -34,6 +34,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 type RealtimePostRow = Record<string, unknown>
 type RealtimeLikeRow = Record<string, unknown>
+type RealtimeCommentRow = Record<string, unknown>
 
 const COMMUNITY_SOCIAL_SYNC_CHANNEL = "community-social-sync"
 
@@ -130,6 +131,19 @@ function incrementPostLike(posts: AchievementPost[], postId: string, amount: num
     return {
       ...post,
       likes: Math.max(0, post.likes + amount),
+    }
+  })
+}
+
+function incrementPostComment(posts: AchievementPost[], postId: string, amount: number): AchievementPost[] {
+  return posts.map((post) => {
+    if (post.id !== postId) {
+      return post
+    }
+
+    return {
+      ...post,
+      comments: Math.max(0, post.comments + amount),
     }
   })
 }
@@ -678,18 +692,64 @@ export default function CommunityDashboardPage() {
           }
 
           const authoritativeLikeCount = pickNumber(payload.new, ["likes", "like_count", "likes_count"])
+          const authoritativeCommentCount = pickNumber(payload.new, ["comments", "comment_count", "comments_count"])
 
-          // DB trigger-backed posts.likes is canonical; reconcile optimistic local counts to it.
+          // DB trigger-backed posts columns are canonical; reconcile optimistic local counts to them.
           setPreviewPosts((prevPosts) =>
             prevPosts.map((post) =>
               post.id === updatedPostId
                 ? {
                     ...post,
                     likes: authoritativeLikeCount,
+                    comments: authoritativeCommentCount,
                   }
                 : post,
             ),
           )
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "comments",
+        },
+        (payload: RealtimePostgresInsertPayload<RealtimeCommentRow>) => {
+          if (!isMounted) {
+            return
+          }
+
+          const commentedPostId = pickString(payload.new, ["post_id"])
+
+          if (!commentedPostId) {
+            return
+          }
+
+          // Optimistic live bump for all viewers; posts UPDATE event reconciles authoritative count.
+          setPreviewPosts((prevPosts) => incrementPostComment(prevPosts, commentedPostId, 1))
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "comments",
+        },
+        (payload: RealtimePostgresDeletePayload<RealtimeCommentRow>) => {
+          if (!isMounted) {
+            return
+          }
+
+          const commentedPostId = pickString(payload.old, ["post_id"])
+
+          if (!commentedPostId) {
+            return
+          }
+
+          // Optimistic live decrement for all viewers; posts UPDATE event reconciles authoritative count.
+          setPreviewPosts((prevPosts) => incrementPostComment(prevPosts, commentedPostId, -1))
         },
       )
       .on(
