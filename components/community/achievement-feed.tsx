@@ -11,17 +11,27 @@ interface AchievementFeedProps {
   onLike?: (postId: string) => void
   likedPostIds?: Set<string>
   pendingLikePostIds?: Set<string>
+  highlightedPostId?: string
 }
 
-export function AchievementFeed({ posts, onLike, likedPostIds, pendingLikePostIds }: AchievementFeedProps) {
+export function AchievementFeed({ posts, onLike, likedPostIds, pendingLikePostIds, highlightedPostId }: AchievementFeedProps) {
   return (
     <section className="space-y-4">
       {posts.map((post) => {
         // Heart color source of truth lives here: if post id is in the set, show liked style.
         const isLiked = Boolean(likedPostIds?.has(post.id))
+        const isHighlighted = highlightedPostId === post.id
 
         return (
-        <article key={post.id} className="rounded-2xl border border-[#1c2f33] bg-[#041419]/85 p-5 sm:p-6">
+        <article
+          id={post.id}
+          key={post.id}
+          className={`rounded-2xl border bg-[#041419]/85 p-5 transition-all duration-700 sm:p-6 ${
+            isHighlighted
+              ? "border-[#ff9a3d] shadow-[0_0_0_1px_rgba(255,154,61,0.55),0_0_26px_rgba(255,107,0,0.35)]"
+              : "border-[#1c2f33]"
+          }`}
+        >
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 overflow-hidden rounded-full border border-[#1d4f5b] bg-[#071a1f]">
               {post.avatarUrl ? (

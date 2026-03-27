@@ -4,11 +4,13 @@
  */
 "use client"
 
-import { CircleUserRound, LogOut, Menu, ShieldCheck, X } from "lucide-react"
+import { Bell, CircleUserRound, LogOut, Menu, ShieldCheck, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
+import { useCommunityNotifications } from "@/components/community/community-notification-provider"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { NavLink } from "@/components/community/types"
 import { clearClientAuthSession } from "@/lib/auth"
 
@@ -19,7 +21,14 @@ interface CommunityNavbarProps {
 export function CommunityNavbar({ links }: CommunityNavbarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const [isMounted, setIsMounted] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const { notifications, unreadCount, markAllAsRead, markAsRead } = useCommunityNotifications()
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Active-link helper for desktop and mobile nav states.
   const isActivePath = (href: string) => {
@@ -34,6 +43,25 @@ export function CommunityNavbar({ links }: CommunityNavbarProps) {
   const handleLogout = () => {
     clearClientAuthSession()
     router.push("/login")
+  }
+
+  const handleNotificationClick = (notificationId: string, postId: string) => {
+    setIsNotificationsOpen(false)
+    markAsRead(notificationId)
+
+    if (!postId) {
+      return
+    }
+
+    const targetRoute = `/community/feed?postId=${encodeURIComponent(postId)}`
+
+    // Smart deep-link: jump to full feed when needed, or refresh feed query when already there.
+    if (pathname !== "/community/feed") {
+      router.push(targetRoute)
+      return
+    }
+
+    router.replace(targetRoute)
   }
 
   return (
@@ -64,6 +92,70 @@ export function CommunityNavbar({ links }: CommunityNavbarProps) {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
+          {isMounted ? (
+            <DropdownMenu open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#1c2f33] bg-[#05171b] text-[#8d9fa3] transition-colors hover:border-[#ff620f] hover:text-[#ff620f]"
+                  aria-label="Open notifications"
+                >
+                  <Bell size={17} />
+                  {unreadCount > 0 ? (
+                    <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full border border-[#521717] bg-[#e5484d] px-1 font-sans text-[10px] leading-none font-semibold text-white">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  ) : null}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-[340px] rounded-xl border border-[#1c2f33] bg-[#041419]/95 p-0 text-[#d8e4e7] shadow-[0_24px_60px_-28px_rgba(0,0,0,0.85)] backdrop-blur-md"
+              >
+                <div className="flex items-center justify-between border-b border-[#1c2f33] px-4 py-3">
+                  <h3 className="font-display text-sm font-bold tracking-wide text-[#e6edf0]">Notifications</h3>
+                  <button
+                    type="button"
+                    onClick={markAllAsRead}
+                    className="font-sans text-xs text-[#8d9fa3] transition-colors hover:text-[#ff620f]"
+                  >
+                    Mark all as read
+                  </button>
+                </div>
+
+                <div className="max-h-80 overflow-y-auto p-2">
+                  {notifications.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-[#1c2f33] px-3 py-4 text-center font-sans text-xs text-[#8d9fa3]">
+                      No notifications yet.
+                    </div>
+                  ) : (
+                    notifications.slice(0, 12).map((notification) => (
+                      <button
+                        key={notification.id}
+                        type="button"
+                        onClick={() => handleNotificationClick(notification.id, notification.postId)}
+                        className={`mb-1 flex w-full flex-col rounded-lg border px-3 py-2 text-left transition-colors last:mb-0 ${
+                          notification.isRead
+                            ? "border-[#173036] bg-[#06181d] hover:bg-[#0a232a]"
+                            : "border-[#2a4348] bg-[#0a2026] hover:bg-[#0d2830]"
+                        }`}
+                      >
+                        <span className="font-sans text-sm text-[#e6edf0]">{notification.message}</span>
+                        <span className="mt-1 font-sans text-[11px] text-[#8d9fa3]">
+                          {new Date(notification.createdAt).toLocaleString()}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <span className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#1c2f33] bg-[#05171b] text-[#8d9fa3]">
+              <Bell size={17} />
+            </span>
+          )}
+
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#1c2f33] bg-[#05171b] text-[#8d9fa3]">
             <CircleUserRound size={18} />
           </span>
