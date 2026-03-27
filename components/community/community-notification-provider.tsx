@@ -13,11 +13,13 @@ const MAX_NOTIFICATIONS = 30
 
 interface CommunityNotification {
   id: string
+  type: "like" | "comment"
   message: string
   postId: string
   actorUserId: string
   createdAt: string
   isRead: boolean
+  openComments?: boolean
 }
 
 interface CommunityNotificationContextValue {
@@ -45,25 +47,29 @@ function getNotificationStorageKey(userId: string): string {
   return `community-notifications:${userId}`
 }
 
-function createNotificationId(payload: RealtimePostgresInsertPayload<RealtimeRow>): string {
-  const row = payload.new
-  const postId = pickString(row, ["post_id"])
-  const actorUserId = pickString(row, ["user_id"])
-  const createdAt = pickString(row, ["created_at", "inserted_at"]) || payload.commit_timestamp || new Date().toISOString()
-
-  return `like:${postId}:${actorUserId}:${createdAt}`
+function createNotificationId(type: "like" | "comment", postId: string, actorUserId: string, createdAt: string): string {
+  return `${type}:${postId}:${actorUserId}:${createdAt}`
 }
 
-function createNotificationIdentityKey(postId: string, actorUserId: string): string {
-  return `${postId}::${actorUserId}`
+function createNotificationIdentityKey(type: "like" | "comment", postId: string, actorUserId: string): string {
+  return `${type}:${postId}::${actorUserId}`
+}
+
+function normalizeNotification(input: CommunityNotification): CommunityNotification {
+  return {
+    ...input,
+    type: input.type ?? "like",
+    openComments: input.openComments ?? false,
+  }
 }
 
 function dedupeNotifications(notifications: CommunityNotification[]): CommunityNotification[] {
   const deduped: CommunityNotification[] = []
   const indexByKey = new Map<string, number>()
 
-  for (const notification of notifications) {
-    const key = createNotificationIdentityKey(notification.postId, notification.actorUserId)
+  for (const rawNotification of notifications) {
+    const notification = normalizeNotification(rawNotification)
+    const key = createNotificationIdentityKey(notification.type, notification.postId, notification.actorUserId)
     const existingIndex = indexByKey.get(key)
 
     if (existingIndex === undefined) {
@@ -89,9 +95,9 @@ function upsertLikeNotification(
   prevNotifications: CommunityNotification[],
   nextNotification: CommunityNotification,
 ): { notifications: CommunityNotification[]; inserted: boolean } {
-  const key = createNotificationIdentityKey(nextNotification.postId, nextNotification.actorUserId)
+  const key = createNotificationIdentityKey(nextNotification.type, nextNotification.postId, nextNotification.actorUserId)
   const existingIndex = prevNotifications.findIndex(
-    (notification) => createNotificationIdentityKey(notification.postId, notification.actorUserId) === key,
+    (notification) => createNotificationIdentityKey(notification.type, notification.postId, notification.actorUserId) === key,
   )
 
   if (existingIndex === -1) {
@@ -108,6 +114,7 @@ function upsertLikeNotification(
     message: nextNotification.message,
     createdAt: nextNotification.createdAt,
     isRead: false,
+    openComments: nextNotification.openComments ?? existingNotification.openComments ?? false,
   }
 
   const withoutExisting = prevNotifications.filter((_, index) => index !== existingIndex)
@@ -142,13 +149,15 @@ async function isUsersOwnedPost(supabase: SupabaseClient, postId: string, userId
 
   const normalizedPostId = postId.trim()
 
-  if (!normalizedPostId || !isUuid(normalizedPostId)) {
+  if (!normalizedPostId) {
     return false
   }
 
   // Preferred path: use a DB function (RPC) that can be configured with security definer semantics.
   // Expected signature: get_post_owner(post_id uuid) -> uuid/text or a row containing owner id fields.
-  const rpcResult = await supabase.rpc("get_post_owner", { post_id: normalizedPostId })
+  const rpcResult = isUuid(normalizedPostId)
+    ? await supabase.rpc("get_post_owner", { post_id: normalizedPostId })
+    : { data: null, error: { message: "Skipped RPC for non-UUID post id" } }
 
   if (!rpcResult.error) {
     if (typeof rpcResult.data === "string") {
@@ -196,6 +205,62 @@ async function isUsersOwnedPost(supabase: SupabaseClient, postId: string, userId
   }
 
   return false
+}
+
+async function fetchActorDisplayName(supabase: SupabaseClient, actorUserId: string): Promise<string> {
+  if (!actorUserId) {
+    return "Someone"
+  }
+
+  const profileResult = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("user_id", actorUserId)
+    .maybeSingle()
+
+  const profileUsername = pickString((profileResult.data as RealtimeRow | null) ?? {}, ["username"])
+
+  if (!profileResult.error && profileUsername) {
+    return profileUsername
+  }
+
+  const userResult = await supabase
+    .from("users")
+    .select("username")
+    .eq("id", actorUserId)
+    .maybeSingle()
+
+  const userUsername = pickString((userResult.data as RealtimeRow | null) ?? {}, ["username"])
+
+  if (!userResult.error && userUsername) {
+    return userUsername
+  }
+
+  return "Someone"
+}
+
+async function resolvePostOwnerUserId(supabase: SupabaseClient, postId: string): Promise<string> {
+  const normalizedPostId = postId.trim()
+
+  if (!normalizedPostId) {
+    return ""
+  }
+
+  const ownerFromUserId = await fetchOwnerFromColumn(supabase, normalizedPostId, "user_id")
+
+  if (ownerFromUserId) {
+    return ownerFromUserId
+  }
+
+  const ownerFromAuthorId = await fetchOwnerFromColumn(supabase, normalizedPostId, "author_id")
+
+  if (ownerFromAuthorId) {
+    return ownerFromAuthorId
+  }
+
+  const ownerFromProfileId = await fetchOwnerFromColumn(supabase, normalizedPostId, "profile_id")
+
+  return ownerFromProfileId
 }
 
 export function CommunityNotificationProvider({ children }: { children: React.ReactNode }) {
@@ -329,15 +394,17 @@ export function CommunityNotificationProvider({ children }: { children: React.Re
             return
           }
 
-          const notificationId = createNotificationId(payload)
           const createdAt = pickString(payload.new, ["created_at", "inserted_at"]) || new Date().toISOString()
+          const notificationId = createNotificationId("like", likedPostId, likedByUserId, createdAt)
           const nextNotification: CommunityNotification = {
             id: notificationId,
+            type: "like",
             message: "Someone liked your achievement! 🎉",
             postId: likedPostId,
             actorUserId: likedByUserId,
             createdAt,
             isRead: false,
+            openComments: false,
           }
           let didInsert = false
 
@@ -349,6 +416,88 @@ export function CommunityNotificationProvider({ children }: { children: React.Re
 
           if (didInsert) {
             toast.success("Someone liked your achievement! 🎉")
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "comments",
+        },
+        async (payload: RealtimePostgresInsertPayload<RealtimeRow>) => {
+          if (!isActive) {
+            return
+          }
+
+          const currentUserId = currentUserIdRef.current
+          const commentedPostId = pickString(payload.new, ["post_id"])
+          const actorUserId = pickString(payload.new, ["user_id"])
+
+          if (!currentUserId || !commentedPostId || !actorUserId) {
+            return
+          }
+
+          if (actorUserId === currentUserId) {
+            return
+          }
+
+          const cachedOwner = ownerByPostIdRef.current[commentedPostId]
+          let postOwnerUserId = cachedOwner
+
+          if (!postOwnerUserId) {
+            postOwnerUserId = await resolvePostOwnerUserId(supabase, commentedPostId)
+
+            if (postOwnerUserId) {
+              ownerByPostIdRef.current[commentedPostId] = postOwnerUserId
+            }
+          }
+
+          const shouldNotify = !!postOwnerUserId && postOwnerUserId === currentUserId
+
+          if (!shouldNotify) {
+            return
+          }
+
+          const actorNameFromPayload = pickString(payload.new, ["username", "author", "display_name"]) || "Someone"
+          const createdAt = pickString(payload.new, ["created_at", "inserted_at"]) || new Date().toISOString()
+          const notificationId = createNotificationId("comment", commentedPostId, actorUserId, createdAt)
+          const nextNotification: CommunityNotification = {
+            id: notificationId,
+            type: "comment",
+            message: `${actorNameFromPayload} commented on your post`,
+            postId: commentedPostId,
+            actorUserId,
+            createdAt,
+            isRead: false,
+            openComments: true,
+          }
+          let didInsert = false
+
+          setNotifications((prevNotifications) => {
+            const upsertResult = upsertLikeNotification(prevNotifications, nextNotification)
+            didInsert = upsertResult.inserted
+            return upsertResult.notifications
+          })
+
+          if (didInsert) {
+            toast.success(`${actorNameFromPayload} commented on your post`)
+          }
+
+          if (actorNameFromPayload === "Someone") {
+            const actorName = await fetchActorDisplayName(supabase, actorUserId)
+
+            if (actorName && actorName !== "Someone") {
+              setNotifications((prevNotifications) => {
+                const upsertResult = upsertLikeNotification(prevNotifications, {
+                  ...nextNotification,
+                  message: `${actorName} commented on your post`,
+                })
+
+                return upsertResult.notifications
+              })
+            }
           }
         },
       )
@@ -374,7 +523,11 @@ export function CommunityNotificationProvider({ children }: { children: React.Re
           setNotifications((prevNotifications) => {
             const filtered = prevNotifications.filter(
               (notification) =>
-                !(notification.postId === unLikedPostId && notification.actorUserId === unLikedByUserId),
+                !(
+                  notification.type === "like" &&
+                  notification.postId === unLikedPostId &&
+                  notification.actorUserId === unLikedByUserId
+                ),
             )
 
             return filtered

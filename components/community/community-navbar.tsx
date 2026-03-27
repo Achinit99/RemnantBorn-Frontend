@@ -45,7 +45,7 @@ export function CommunityNavbar({ links }: CommunityNavbarProps) {
     router.push("/login")
   }
 
-  const handleNotificationClick = (notificationId: string, postId: string) => {
+  const handleNotificationClick = (notificationId: string, postId: string, openComments: boolean) => {
     setIsNotificationsOpen(false)
     markAsRead(notificationId)
 
@@ -53,7 +53,10 @@ export function CommunityNavbar({ links }: CommunityNavbarProps) {
       return
     }
 
-    const targetRoute = `/community/feed?postId=${encodeURIComponent(postId)}`
+    const postIdQuery = `postId=${encodeURIComponent(postId)}`
+    const targetRoute = openComments
+      ? `/community/feed?${postIdQuery}&openComments=1`
+      : `/community/feed?${postIdQuery}`
 
     // Smart deep-link: jump to full feed when needed, or refresh feed query when already there.
     if (pathname !== "/community/feed") {
@@ -133,7 +136,7 @@ export function CommunityNavbar({ links }: CommunityNavbarProps) {
                       <button
                         key={notification.id}
                         type="button"
-                        onClick={() => handleNotificationClick(notification.id, notification.postId)}
+                        onClick={() => handleNotificationClick(notification.id, notification.postId, Boolean(notification.openComments))}
                         className={`mb-1 flex w-full flex-col rounded-lg border px-3 py-2 text-left transition-colors last:mb-0 ${
                           notification.isRead
                             ? "border-[#173036] bg-[#06181d] hover:bg-[#0a232a]"

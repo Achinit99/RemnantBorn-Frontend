@@ -40,6 +40,17 @@ export interface AchievementPost {
   shares: number
 }
 
+export interface PostComment {
+  id: string
+  postId: string
+  userId: string
+  author: string
+  content: string
+  createdAt: string
+  avatarUrl?: string | null
+  isOptimistic?: boolean
+}
+
 export interface ChatMessage {
   id: string
   author: string
