@@ -19,12 +19,11 @@ import type {
 import {
   dailyRelic,
   bounties,
-  liveChatMessages,
 } from "@/app/community/mock-data"
 import { AchievementFeed } from "@/components/community/achievement-feed"
 import { BountyBoard } from "@/components/community/bounty-board"
 import { DailyRelicStatus } from "@/components/community/daily-relic-status"
-import { LiveChatPanel } from "@/components/community/live-chat-panel"
+import { LiveChatPreview } from "@/components/community/live-chat-preview"
 import type { AchievementPost, PlayerProfile } from "@/components/community/types"
 import { PlayerProfileSidebar } from "@/components/community/player-profile-sidebar"
 import { getApiErrorMessage } from "@/lib/auth-api"
@@ -308,7 +307,6 @@ export default function CommunityDashboardPage() {
   }, [pendingLikePostIds])
 
   const previewBounties = bounties.slice(0, 3)
-  const previewChat = liveChatMessages.slice(0, 3)
 
   // === Like/Unlike Logic Starts Here ===
   const handleLike = async (postId: string) => {
@@ -947,7 +945,7 @@ export default function CommunityDashboardPage() {
                 View All
               </Link>
             </div>
-            <LiveChatPanel messages={previewChat} />
+            <LiveChatPreview />
           </div>
         </aside>
       </div>
