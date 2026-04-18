@@ -9,7 +9,7 @@ import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { useState, type FormEvent } from "react"
 
-import { authApi, getApiErrorMessage } from "@/lib/auth-api"
+import { authApi, extractAuthTokens, getApiErrorMessage } from "@/lib/auth-api"
 import {
   ACCESS_TOKEN_STORAGE_KEY,
   createAuthCookieString,
@@ -39,10 +39,9 @@ export default function LoginPage() {
         password,
       })
 
-      const accessToken = response.data?.access_token
-      const refreshToken = response.data?.refresh_token
+      const { accessToken, refreshToken } = extractAuthTokens(response.data)
 
-      if (typeof accessToken !== "string" || accessToken.length === 0) {
+      if (!accessToken) {
         throw new Error("Login succeeded, but no access token was returned.")
       }
 

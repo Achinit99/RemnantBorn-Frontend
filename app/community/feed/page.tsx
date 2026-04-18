@@ -19,6 +19,7 @@ import { AchievementComposer } from "@/components/community/achievement-composer
 import { AchievementFeed } from "@/components/community/achievement-feed"
 import type { AchievementPost } from "@/components/community/types"
 import { getStoredAccessToken } from "@/lib/auth"
+import { getApiBaseUrl } from "@/lib/api-config"
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 type RealtimePostRow = Record<string, unknown>
@@ -645,7 +646,7 @@ export default function CommunityFeedPage() {
 
     try {
       await axios.post(
-        "http://localhost:3000/posts",
+        `${getApiBaseUrl()}/posts`,
         { content },
         {
           headers: {

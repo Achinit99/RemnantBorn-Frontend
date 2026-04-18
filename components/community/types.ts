@@ -53,9 +53,14 @@ export interface PostComment {
 
 export interface ChatMessage {
   id: string
+  user_id: string
   author: string
+  avatar_url: string | null
+  level: number
   content: string
   postedAt: string
+  createdAt?: string
+  channel?: string
 }
 
 export interface DailyRelic {
