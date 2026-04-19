@@ -25,9 +25,12 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 type RealtimePostRow = Record<string, unknown>
 type RealtimeLikeRow = Record<string, unknown>
 type RealtimeCommentRow = Record<string, unknown>
+type PostAttachment = { type?: string; url?: string }
 
 const COMMUNITY_SOCIAL_SYNC_CHANNEL = "community-social-sync"
 const FEED_POSTS_PAGE_SIZE = 10
+const POST_IMAGES_BUCKET = "post-images"
+const MAX_POST_IMAGE_SIZE_BYTES = 2 * 1024 * 1024
 
 function mergePosts(primaryPosts: AchievementPost[], secondaryPosts: AchievementPost[]): AchievementPost[] {
   const mergedPosts = [...primaryPosts, ...secondaryPosts]
@@ -73,6 +76,26 @@ function pickNumber(row: RealtimePostRow, keys: string[]): number {
   }
 
   return 0
+}
+
+function extractImageUrlFromAttachments(row: RealtimePostRow): string {
+  const attachments = row.attachments
+
+  if (!Array.isArray(attachments)) {
+    return ""
+  }
+
+  for (const attachment of attachments as PostAttachment[]) {
+    if (!attachment || typeof attachment !== "object") {
+      continue
+    }
+
+    if (attachment.type === "image" && typeof attachment.url === "string" && attachment.url.trim().length > 0) {
+      return attachment.url.trim()
+    }
+  }
+
+  return ""
 }
 
 function formatPostedAt(createdAt: string): string {
@@ -301,6 +324,7 @@ async function mapRealtimePostToAchievementPost(supabase: SupabaseClient, row: R
     avatarUrl: authorDetails.avatarUrl,
     postedAt: formatPostedAt(createdAt),
     content: pickString(row, ["content", "body", "text"]),
+    imageUrl: extractImageUrlFromAttachments(row) || null,
     likes: pickNumber(row, ["likes", "like_count", "likes_count"]),
     comments: pickNumber(row, ["comments", "comment_count", "comments_count"]),
     shares: pickNumber(row, ["shares", "share_count", "shares_count"]),
@@ -343,6 +367,8 @@ export default function CommunityFeedPage() {
   const [pendingLikePostIds, setPendingLikePostIds] = useState<Set<string>>(new Set())
   const [isPosting, setIsPosting] = useState(false)
   const [postErrorMessage, setPostErrorMessage] = useState("")
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null)
+  const [selectedImagePreviewUrl, setSelectedImagePreviewUrl] = useState<string | null>(null)
   const [highlightedPostId, setHighlightedPostId] = useState("")
   const [forceOpenCommentPostId, setForceOpenCommentPostId] = useState("")
   const [isLoadingMorePosts, setIsLoadingMorePosts] = useState(false)
@@ -627,10 +653,47 @@ export default function CommunityFeedPage() {
     }
   }, [])
 
+  useEffect(() => {
+    return () => {
+      if (selectedImagePreviewUrl) {
+        URL.revokeObjectURL(selectedImagePreviewUrl)
+      }
+    }
+  }, [selectedImagePreviewUrl])
+
+  const handleSelectPostImage = (file: File | null) => {
+    if (!file) {
+      return
+    }
+
+    if (file.size > MAX_POST_IMAGE_SIZE_BYTES) {
+      setPostErrorMessage("Image must be 2MB or smaller.")
+      return
+    }
+
+    if (selectedImagePreviewUrl) {
+      URL.revokeObjectURL(selectedImagePreviewUrl)
+    }
+
+    const previewUrl = URL.createObjectURL(file)
+    setSelectedImageFile(file)
+    setSelectedImagePreviewUrl(previewUrl)
+    setPostErrorMessage("")
+  }
+
+  const clearSelectedPostImage = () => {
+    if (selectedImagePreviewUrl) {
+      URL.revokeObjectURL(selectedImagePreviewUrl)
+    }
+
+    setSelectedImageFile(null)
+    setSelectedImagePreviewUrl(null)
+  }
+
   const handleCreatePost = async () => {
     const content = postDraft.trim()
 
-    if (!content || isPosting) {
+    if ((!content && !selectedImageFile) || isPosting) {
       return
     }
 
@@ -644,10 +707,57 @@ export default function CommunityFeedPage() {
     setIsPosting(true)
     setPostErrorMessage("")
 
+    let uploadedImagePath = ""
+
     try {
+      let uploadedImageUrl = ""
+      let attachments: Array<{ type: string; url: string }> = []
+      const supabase = getSupabaseBrowserClient()
+
+      if (selectedImageFile) {
+        if (!supabase) {
+          setPostErrorMessage("Storage is currently unavailable. Please try again.")
+          setIsPosting(false)
+          return
+        }
+
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser()
+
+        if (authError || !user?.id) {
+          setPostErrorMessage("Failed to verify your session for image upload.")
+          setIsPosting(false)
+          return
+        }
+
+        const extension = selectedImageFile.name.split(".").pop()?.toLowerCase() || "jpg"
+        uploadedImagePath = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`
+
+        const { error: uploadError } = await supabase.storage
+          .from(POST_IMAGES_BUCKET)
+          .upload(uploadedImagePath, selectedImageFile, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: selectedImageFile.type,
+          })
+
+        if (uploadError) {
+          throw new Error(uploadError.message || "Failed to upload image")
+        }
+
+        const { data: publicUrlData } = supabase.storage.from(POST_IMAGES_BUCKET).getPublicUrl(uploadedImagePath)
+        uploadedImageUrl = publicUrlData.publicUrl || ""
+        attachments = uploadedImageUrl ? [{ type: "image", url: uploadedImageUrl }] : []
+      }
+
       await axios.post(
         `${getApiBaseUrl()}/posts`,
-        { content },
+        {
+          content: content || " ",
+          attachments,
+        },
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -657,8 +767,17 @@ export default function CommunityFeedPage() {
       )
 
       setPostDraft("")
+      clearSelectedPostImage()
       // New post appears via realtime insert listener once persisted.
-    } catch {
+    } catch (error) {
+      if (uploadedImagePath) {
+        const supabase = getSupabaseBrowserClient()
+        if (supabase) {
+          await supabase.storage.from(POST_IMAGES_BUCKET).remove([uploadedImagePath])
+        }
+      }
+
+      console.error("[CommunityFeedPage] Failed to create post with image:", error)
       setPostErrorMessage("Failed to post. Please try again")
     } finally {
       setIsPosting(false)
@@ -1065,6 +1184,9 @@ export default function CommunityFeedPage() {
         onSubmit={handleCreatePost}
         isSubmitting={isPosting}
         errorMessage={postErrorMessage}
+        imagePreviewUrl={selectedImagePreviewUrl}
+        onImageSelected={handleSelectPostImage}
+        onClearImage={clearSelectedPostImage}
       />
       <AchievementFeed
         posts={posts}

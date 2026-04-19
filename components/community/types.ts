@@ -35,6 +35,7 @@ export interface AchievementPost {
   avatarUrl: string
   postedAt: string
   content: string
+  imageUrl?: string | null
   likes: number
   comments: number
   shares: number

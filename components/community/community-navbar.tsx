@@ -68,7 +68,7 @@ export function CommunityNavbar({ links }: CommunityNavbarProps) {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#1c2f33]/80 bg-[#031014]/90 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-t border-t-white/10 border-b border-[#1c2f33]/75 bg-black/40 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
       <div className="mx-auto flex h-18 max-w-[1600px] items-center justify-between px-4 sm:px-6 lg:px-10">
         <Link href="/community" className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#ff620f] font-display text-sm font-bold text-[#ff620f]">
@@ -85,8 +85,10 @@ export function CommunityNavbar({ links }: CommunityNavbarProps) {
             <Link
               key={link.label}
               href={link.href}
-              className={`font-sans text-sm tracking-[0.08em] transition-colors hover:text-[#FF6B00] ${
-                isActivePath(link.href) ? "text-[#FF6B00]" : "text-[#8d9fa3]"
+              className={`relative pb-1 font-sans text-base tracking-[0.08em] transition-colors hover:text-[#ffcc6e] ${
+                isActivePath(link.href)
+                  ? "text-[#ffd87a] after:absolute after:inset-x-0 after:-bottom-1 after:h-[2px] after:rounded-full after:bg-gradient-to-r after:from-[#ffd700] after:via-[#73dae3] after:to-[#ffd700] after:shadow-[0_0_12px_rgba(115,218,227,0.85)]"
+                  : "text-[#9aacb0]"
               }`}
             >
               {link.label}
@@ -190,8 +192,10 @@ export function CommunityNavbar({ links }: CommunityNavbarProps) {
                 key={link.label}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`font-sans text-sm tracking-[0.08em] transition-colors hover:text-[#FF6B00] ${
-                  isActivePath(link.href) ? "text-[#FF6B00]" : "text-[#8d9fa3]"
+                className={`relative pb-1 font-sans text-base tracking-[0.08em] transition-colors hover:text-[#ffcc6e] ${
+                  isActivePath(link.href)
+                    ? "text-[#ffd87a] after:absolute after:inset-x-0 after:-bottom-1 after:h-[2px] after:rounded-full after:bg-gradient-to-r after:from-[#ffd700] after:via-[#73dae3] after:to-[#ffd700]"
+                    : "text-[#9aacb0]"
                 }`}
               >
                 {link.label}

@@ -18,20 +18,20 @@ const difficultyStyles: Record<Bounty["difficulty"], string> = {
 
 export function BountyBoard({ bounties }: BountyBoardProps) {
   return (
-    <section className="rounded-2xl border border-[#1c2f33] bg-[#041419]/85 p-5 sm:p-6">
+    <section className="glass-card-3d rounded-2xl p-5 sm:p-6">
       <div className="flex items-center gap-2">
         <Target className="text-[#ff620f]" size={20} />
-        <h2 className="font-sans text-xl tracking-[0.08em] text-[#ff620f]">Bounty Board</h2>
+        <h2 className="glass-title-gold font-sans text-xl tracking-[0.08em]">Bounty Board</h2>
       </div>
 
       <div className="mt-4 space-y-3">
         {bounties.map((bounty) => (
           <article
             key={bounty.id}
-            className="rounded-xl border border-[#153038] bg-[#071a1f] p-4 transition-colors hover:border-[#1d4f5b]"
+            className="rounded-xl border border-[#153038] bg-black/40 p-4 backdrop-blur-xl transition-colors hover:border-[#1d4f5b]"
           >
             <div className="flex items-start justify-between gap-3">
-              <p className="font-display text-xl font-semibold text-[#e6edf0]">{bounty.title}</p>
+              <p className="glass-title-gold font-display text-xl font-semibold">{bounty.title}</p>
               <span className={`rounded-full border px-3 py-1 font-sans text-xs ${difficultyStyles[bounty.difficulty]}`}>
                 {bounty.difficulty}
               </span>
