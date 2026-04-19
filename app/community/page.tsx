@@ -24,6 +24,7 @@ import { AchievementFeed } from "@/components/community/achievement-feed"
 import { BountyBoard } from "@/components/community/bounty-board"
 import { DailyRelicStatus } from "@/components/community/daily-relic-status"
 import { LiveChatPreview } from "@/components/community/live-chat-preview"
+import { MagicDustCard } from "@/components/community/magic-dust-card"
 import type { AchievementPost, PlayerProfile } from "@/components/community/types"
 import { PlayerProfileSidebar } from "@/components/community/player-profile-sidebar"
 import { getApiErrorMessage } from "@/lib/auth-api"
@@ -34,6 +35,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 type RealtimePostRow = Record<string, unknown>
 type RealtimeLikeRow = Record<string, unknown>
 type RealtimeCommentRow = Record<string, unknown>
+type PostAttachment = { type?: string; url?: string }
 
 const COMMUNITY_SOCIAL_SYNC_CHANNEL = "community-social-sync"
 
@@ -67,6 +69,26 @@ function pickNumber(row: RealtimePostRow, keys: string[]): number {
   }
 
   return 0
+}
+
+function extractImageUrlFromAttachments(row: RealtimePostRow): string {
+  const attachments = row.attachments
+
+  if (!Array.isArray(attachments)) {
+    return ""
+  }
+
+  for (const attachment of attachments as PostAttachment[]) {
+    if (!attachment || typeof attachment !== "object") {
+      continue
+    }
+
+    if (attachment.type === "image" && typeof attachment.url === "string" && attachment.url.trim().length > 0) {
+      return attachment.url.trim()
+    }
+  }
+
+  return ""
 }
 
 function formatPostedAt(createdAt: string): string {
@@ -257,6 +279,7 @@ async function mapRealtimePostToAchievementPost(supabase: SupabaseClient, row: R
     avatarUrl: authorDetails.avatarUrl,
     postedAt: formatPostedAt(createdAt),
     content: pickString(row, ["content", "body", "text"]),
+    imageUrl: extractImageUrlFromAttachments(row) || null,
     likes: pickNumber(row, ["likes", "like_count", "likes_count"]),
     comments: pickNumber(row, ["comments", "comment_count", "comments_count"]),
     shares: pickNumber(row, ["shares", "share_count", "shares_count"]),
@@ -872,17 +895,9 @@ export default function CommunityDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-[#1c2f33] bg-[#041419]/85 p-5 sm:p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="font-display text-3xl font-bold text-[#e6edf0] sm:text-4xl">Community Dashboard</h1>
-            <p className="mt-2 font-sans text-sm text-[#8d9fa3] sm:text-base">
-              Summary view with latest updates across bounties, social feed, and live chat.
-            </p>
-          </div>
-          <p className="font-sans text-xs tracking-[0.1em] text-[#8d9fa3] uppercase">Home Summary</p>
-        </div>
-      </section>
+      <header>
+        <h1 className="font-display text-3xl font-bold text-[#e6edf0] sm:text-4xl">Community</h1>
+      </header>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
         <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
@@ -892,7 +907,13 @@ export default function CommunityDashboardPage() {
               Open Profile
             </Link>
           </div>
-          {isProfileLoading ? <DashboardSidebarSkeleton /> : profile ? <PlayerProfileSidebar profile={profile} /> : null}
+          {isProfileLoading ? (
+            <DashboardSidebarSkeleton />
+          ) : profile ? (
+            <MagicDustCard className="rounded-2xl" particleCount={24}>
+              <PlayerProfileSidebar profile={profile} />
+            </MagicDustCard>
+          ) : null}
           {profileErrorMessage && !isProfileLoading && !profile ? (
             <div className="rounded-2xl border border-[#673419] bg-[#2a170d] px-4 py-3 font-sans text-sm text-[#ffb286]">
               {profileErrorMessage}
@@ -908,7 +929,9 @@ export default function CommunityDashboardPage() {
                 View All
               </Link>
             </div>
-            <BountyBoard bounties={previewBounties} />
+            <MagicDustCard className="rounded-2xl" particleCount={24}>
+              <BountyBoard bounties={previewBounties} />
+            </MagicDustCard>
           </div>
 
           <div className="space-y-3">
@@ -918,12 +941,14 @@ export default function CommunityDashboardPage() {
                 View All
               </Link>
             </div>
-            <AchievementFeed
-              posts={previewPosts}
-              onLike={handleLike}
-              likedPostIds={likedPostIds}
-              pendingLikePostIds={pendingLikePostIds}
-            />
+            <MagicDustCard className="rounded-2xl" particleCount={28}>
+              <AchievementFeed
+                posts={previewPosts}
+                onLike={handleLike}
+                likedPostIds={likedPostIds}
+                pendingLikePostIds={pendingLikePostIds}
+              />
+            </MagicDustCard>
           </div>
         </section>
 
@@ -935,7 +960,9 @@ export default function CommunityDashboardPage() {
                 View
               </Link>
             </div>
-            <DailyRelicStatus relic={dailyRelic} />
+            <MagicDustCard className="rounded-2xl" particleCount={20}>
+              <DailyRelicStatus relic={dailyRelic} />
+            </MagicDustCard>
           </div>
 
           <div className="space-y-3">
@@ -945,7 +972,9 @@ export default function CommunityDashboardPage() {
                 View All
               </Link>
             </div>
-            <LiveChatPreview />
+            <MagicDustCard className="rounded-2xl" particleCount={24}>
+              <LiveChatPreview />
+            </MagicDustCard>
           </div>
         </aside>
       </div>

@@ -564,7 +564,7 @@ export function AchievementFeed({
           <article
             id={post.id}
             key={post.id}
-            className={`rounded-2xl border bg-[#041419]/85 p-5 transition-all duration-700 sm:p-6 ${
+            className={`glass-card-3d rounded-2xl p-5 sm:p-6 ${
               isHighlighted
                 ? "border-[#ff9a3d] shadow-[0_0_0_1px_rgba(255,154,61,0.55),0_0_26px_rgba(255,107,0,0.35)]"
                 : "border-[#1c2f33]"
@@ -581,12 +581,25 @@ export function AchievementFeed({
                 )}
               </div>
               <div>
-                <p className="font-display text-xl font-semibold text-[#e6edf0]">{post.author}</p>
+                <p className="glass-title-gold font-display text-xl font-semibold">{post.author}</p>
                 <p className="font-sans text-xs text-[#8d9fa3]">{post.postedAt}</p>
               </div>
             </div>
 
-            <p className="mt-4 font-sans text-base leading-relaxed text-[#d4dee1]">{post.content}</p>
+            {post.content ? <p className="glass-body-offwhite mt-4 font-sans text-base leading-relaxed">{post.content}</p> : null}
+
+            {post.imageUrl ? (
+              <div className="mt-4 overflow-hidden rounded-xl border border-[#7a6222]/45 bg-black/35 p-1 shadow-[inset_0_0_24px_rgba(255,215,0,0.16)]">
+                <div className="h-[300px] overflow-hidden rounded-lg bg-[#081116]">
+                  <img
+                    src={post.imageUrl}
+                    alt="Post upload"
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+            ) : null}
 
             <div className="mt-4 flex items-center gap-4 text-[#8d9fa3]">
               <button

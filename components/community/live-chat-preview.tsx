@@ -222,15 +222,15 @@ export function LiveChatPreview() {
   }, [subscribeToGlobalChat])
 
   return (
-    <section className="rounded-2xl border border-[#1c2f33] bg-[#041419]/85 p-4 shadow-[0_24px_40px_-32px_rgba(0,0,0,0.9)]">
+    <section className="glass-card-3d rounded-2xl p-4">
       <div className="mb-3 flex items-center gap-2">
         <MessageCircle className="text-[#ff620f]" size={16} />
-        <h3 className="font-sans text-sm tracking-[0.08em] text-[#ff620f] uppercase">Global Feed</h3>
+        <h3 className="glass-title-gold font-sans text-sm tracking-[0.08em] uppercase">Global Feed</h3>
       </div>
 
       <div
         ref={scrollContainerRef}
-        className="flex h-[320px] flex-col rounded-xl border border-[#153038] bg-[#071a1f]"
+        className="flex h-[320px] flex-col rounded-xl border border-[#153038] bg-[#071a1f]/80"
       >
         <div className="flex-1 min-h-0 space-y-3 overflow-y-auto p-3" style={{ overflowAnchor: "auto" }}>
         {isLoading ? (
@@ -273,7 +273,7 @@ export function LiveChatPreview() {
                       <p className="text-[10px] text-[#9f8f72]">LVL {message.level}</p>
                       <p className="text-[10px] text-[#6f888e]">{message.postedAt}</p>
                     </div>
-                    <p className="mt-1 font-sans text-sm leading-relaxed text-[#d4dee1]">{message.content}</p>
+                    <p className="glass-body-offwhite mt-1 font-sans text-sm leading-relaxed">{message.content}</p>
                   </div>
                 </article>
               </div>

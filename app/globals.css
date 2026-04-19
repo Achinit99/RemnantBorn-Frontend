@@ -149,3 +149,30 @@
 .message-feed-enter {
   animation: message-feed-enter 2s ease-out;
 }
+
+.glass-card-3d {
+  background: rgba(4, 20, 25, 0.5);
+  backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(118, 188, 194, 0.12);
+  transform: perspective(1000px) translateZ(0);
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+  will-change: transform;
+}
+
+.glass-card-3d:hover {
+  transform: perspective(1000px) scale(1.01);
+  box-shadow: 0 26px 56px rgba(0, 0, 0, 0.88), 0 0 0 1px rgba(255, 215, 0, 0.2), 0 0 24px rgba(99, 218, 230, 0.2);
+}
+
+.glass-title-gold {
+  color: #ffd700;
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.22);
+}
+
+.glass-body-offwhite {
+  color: #edf4f7;
+}

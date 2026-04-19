@@ -800,18 +800,18 @@ export function LiveChatPanel({ channel = "global" }: LiveChatPanelProps) {
   }, [isRecentlySeen, onlineUsernames, statusUsers])
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1c2f33] bg-[#041419]/85">
+    <section className="glass-card-3d flex h-full min-h-0 flex-col overflow-hidden rounded-2xl">
       <div className="border-b border-[#1c2f33]/90 px-4 py-4 sm:px-6">
         <div className="flex items-center gap-2">
           <MessageCircle className="text-[#ff620f]" size={20} />
-          <h2 className="font-sans text-xl tracking-[0.08em] text-[#ff620f]">Live Chat...</h2>
+          <h2 className="glass-title-gold font-sans text-xl tracking-[0.08em]">Live Chat...</h2>
         </div>
         <p className="mt-1 font-sans text-xs text-[#8d9fa3] sm:text-sm">
           Sanctum relay is live. Recent voices surface first, history rises as you scroll.
         </p>
       </div>
 
-      <div className="border-b border-[#153038]/80 bg-[#051218]/80 px-3 py-3 sm:px-4">
+      <div className="border-b border-[#153038]/80 bg-[#051218]/68 px-3 py-3 sm:px-4">
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {participantList.length === 0 ? (
             <p className="px-1 font-sans text-xs text-[#8d9fa3]">No active travelers yet.</p>
@@ -852,7 +852,7 @@ export function LiveChatPanel({ channel = "global" }: LiveChatPanelProps) {
       <div
         ref={messageContainerRef}
         onScroll={handleMessageScroll}
-        className="flex-1 min-h-0 space-y-3 overflow-y-auto bg-[#071a1f] px-4 py-4 sm:px-6"
+        className="flex-1 min-h-0 space-y-3 overflow-y-auto bg-[#071a1f]/80 px-4 py-4 sm:px-6"
         style={{ overflowAnchor: "auto" }}
       >
         {isFetchingOlder ? (
@@ -907,7 +907,7 @@ export function LiveChatPanel({ channel = "global" }: LiveChatPanelProps) {
                       <p className="text-[10px] text-[#9f8f72]">LVL {message.level}</p>
                       <p className="text-[10px] text-[#6f888e]">{message.postedAt}</p>
                     </div>
-                    <p className="mt-1 font-sans text-sm leading-relaxed text-[#d4dee1]">{message.content}</p>
+                    <p className="glass-body-offwhite mt-1 font-sans text-sm leading-relaxed">{message.content}</p>
                   </div>
                 </article>
               </div>
@@ -930,7 +930,7 @@ export function LiveChatPanel({ channel = "global" }: LiveChatPanelProps) {
       </div>
 
       <form
-        className="sticky bottom-0 z-20 flex items-center gap-2 border-t border-[#153038] bg-[#041419]/95 px-4 py-3 backdrop-blur-md sm:px-6"
+        className="sticky bottom-0 z-20 flex items-center gap-2 border-t border-[#153038] bg-[#041419]/82 px-4 py-3 backdrop-blur-md sm:px-6"
         onSubmit={handleSendMessage}
       >
         <label htmlFor="chat-message" className="sr-only">
