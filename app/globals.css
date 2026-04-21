@@ -124,6 +124,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-color: #051312;
+    color: #d9d9d9;
   }
 }
 
@@ -165,16 +167,16 @@
 
 .glass-card-3d:hover {
   transform: perspective(1000px) scale(1.01);
-  box-shadow: 0 26px 56px rgba(0, 0, 0, 0.88), 0 0 0 1px rgba(255, 215, 0, 0.2), 0 0 24px rgba(99, 218, 230, 0.2);
+  box-shadow: 0 26px 56px rgba(0, 0, 0, 0.88), 0 0 0 1px rgba(204, 174, 104, 0.26), 0 0 24px rgba(166, 169, 33, 0.22);
 }
 
 .glass-title-gold {
-  color: #ffd700;
-  text-shadow: 0 0 12px rgba(255, 215, 0, 0.22);
+  color: #ccae68;
+  text-shadow: 0 0 12px rgba(166, 169, 33, 0.28);
 }
 
 .glass-body-offwhite {
-  color: #edf4f7;
+  color: #d9d9d9;
 }
 
 @keyframes gold-dust-fall {
@@ -205,4 +207,166 @@
   animation-name: gold-dust-fall;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
+}
+
+@keyframes film-strip-scroll {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes film-grain-shift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  25% {
+    transform: translate3d(-2%, 1.5%, 0);
+  }
+
+  50% {
+    transform: translate3d(1.5%, -1%, 0);
+  }
+
+  75% {
+    transform: translate3d(-1%, -1.5%, 0);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes film-flicker {
+  0%,
+  100% {
+    opacity: 0.11;
+  }
+
+  14% {
+    opacity: 0.17;
+  }
+
+  31% {
+    opacity: 0.09;
+  }
+
+  63% {
+    opacity: 0.15;
+  }
+
+  80% {
+    opacity: 0.1;
+  }
+}
+
+.film-strip-shell {
+  border: 1px solid rgba(204, 174, 104, 0.35);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(3, 10, 10, 0.96) 0%, rgba(5, 19, 18, 0.98) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 20px 45px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.film-strip-perforation {
+  height: 16px;
+  background-color: #050505;
+  background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.92) 0 8px, transparent 8px 24px);
+  opacity: 0.95;
+}
+
+.film-strip-perforation-top {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.film-strip-perforation-bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.film-strip-marquee {
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+  padding: 14px 0;
+}
+
+.film-strip-track {
+  display: flex;
+  width: max-content;
+  position: relative;
+  z-index: 1;
+  animation: film-strip-scroll 52s linear infinite;
+  will-change: transform;
+}
+
+.film-strip-marquee:hover .film-strip-track {
+  animation-play-state: paused;
+}
+
+.film-strip-reel {
+  display: flex;
+  gap: 4px;
+  padding: 0 6px;
+}
+
+.film-frame {
+  position: relative;
+  flex: 0 0 380px;
+  aspect-ratio: 19 / 10;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(204, 174, 104, 0.22);
+  background: transparent;
+}
+
+.film-frame-image {
+  object-fit: cover;
+  filter: grayscale(0.2) sepia(0.18) brightness(0.96) contrast(1.08);
+  transition: transform 260ms ease, filter 260ms ease;
+}
+
+.film-frame:hover .film-frame-image {
+  transform: scale(1.04);
+  filter: grayscale(0) sepia(0) brightness(1.08) contrast(1.02);
+}
+
+.film-grain-overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+}
+
+.film-grain-overlay::before {
+  content: "";
+  position: absolute;
+  inset: -100%;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.14) 0.5px, transparent 0.6px);
+  background-size: 3px 3px;
+  mix-blend-mode: soft-light;
+  animation: film-grain-shift 1.2s steps(2, end) infinite;
+}
+
+.film-grain-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.06));
+  animation: film-flicker 0.25s linear infinite;
+}
+
+@media (max-width: 768px) {
+  .film-frame {
+    flex-basis: 250px;
+    aspect-ratio: 15 / 9;
+  }
+
+  .film-strip-track {
+    animation-duration: 40s;
+  }
 }
