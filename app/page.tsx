@@ -5,9 +5,11 @@
 "use client"
 
 import { ChevronDown, User, Menu, X, Instagram, Facebook, Twitter } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { FightRemnantsCharacterGroup } from "@/components/home/fight-remnants-character-group"
 
 export default function RemnantbornLanding() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -243,37 +245,37 @@ export default function RemnantbornLanding() {
       <section id="about" className="relative w-full bg-[#0a0a09] py-16 md:py-24">
         <div className="mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
           {/* Section Title */}
-          <h2 className="font-sans text-3xl font-normal tracking-[0.15em] text-[#c9b896] uppercase md:text-4xl lg:text-5xl">
+          <h2 className="mt-3 font-sans text-3xl font-normal tracking-[0.15em] text-[#c9b896] uppercase md:mt-4 md:text-4xl lg:mt-5 lg:text-5xl">
             Fight The Remnants
           </h2>
 
           {/* Content Grid */}
-          <div className="mt-12 flex flex-col items-center gap-12 lg:mt-16 lg:flex-row lg:items-start lg:gap-16">
-            {/* Left Column - Logo/Emblem */}
-            <div className="flex flex-shrink-0 flex-col items-center">
-              <div className="relative h-[280px] w-[280px] md:h-[320px] md:w-[320px]">
-                <img
-                  src="/images/remnantborn-emblem.jpg"
-                  alt="Remnantborn emblem"
-                  className="h-full w-full object-contain"
-                />
-              </div>
-              <div className="mt-4 text-center">
-                <p className="font-sans text-sm tracking-[0.2em] text-[#c9b896] uppercase">Remnantborn</p>
-                <p className="font-serif text-xs italic text-[#8a7d5a]">The Last Tear</p>
-              </div>
+          <div className="mt-12 flex flex-col items-center gap-12 lg:mt-16 lg:flex-row lg:items-center lg:gap-20 xl:gap-24">
+            {/* Left Column - Animated Character Group */}
+            <div className="flex w-full flex-shrink-0 justify-center lg:w-[43%] lg:justify-start lg:pr-4 lg:-ml-6 xl:pr-8 xl:-ml-10">
+              <FightRemnantsCharacterGroup />
             </div>
 
             {/* Right Column - Text Content */}
-            <div className="flex flex-1 flex-col gap-8 lg:pt-4">
-              <div className="max-w-2xl">
-                <p className="font-serif text-base leading-relaxed text-[#b8a882] italic md:text-lg">
+            <div className="relative flex flex-1 flex-col gap-8 text-center lg:-mt-5 lg:-ml-8 lg:pt-0 lg:text-left xl:-ml-10">
+              <div className="relative max-w-[35rem] lg:pl-1 xl:max-w-[36rem] xl:pl-2">
+                <p className="font-sans text-[14px] leading-[1.6] tracking-[0.035em] text-[#c9b896] uppercase md:text-[15px]">
                   Remnantborn – The Last Tear is a fantasy action fighting game set in a world where magic and reality collide. After a devastating catastrophe shattered the balance of the realm, only fragments of power—known as Remnants—remain.
                 </p>
 
-                <p className="mt-6 font-serif text-base leading-relaxed text-[#b8a882] italic md:text-lg">
+                <p className="mt-10 font-sans text-[14px] leading-[1.6] tracking-[0.035em] text-[#c9b896] uppercase md:text-[15px]">
                   You play as a Remnantborn, a warrior born from loss, memory, and the final tear left behind by a dying world. Each battle blends fast-paced combat, magical abilities, and raw physical strength as you fight corrupted enemies and uncover the truth behind the world's collapse.
                 </p>
+              </div>
+
+              <div className="pointer-events-none absolute -bottom-[3rem] right-[-0.75rem] h-56 w-56 translate-y-1/4 sm:-bottom-[4.5rem] sm:right-[-2.75rem] sm:h-80 sm:w-80 lg:-bottom-[6.5rem] lg:right-[-6.25rem] lg:h-[30rem] lg:w-[30rem]">
+                <Image
+                  src="/assets/characters/about1.png"
+                  alt="Monstera leaf"
+                  fill
+                  sizes="(max-width: 640px) 224px, (max-width: 1024px) 320px, 480px"
+                  className="object-contain object-right-bottom opacity-95"
+                />
               </div>
             </div>
           </div>

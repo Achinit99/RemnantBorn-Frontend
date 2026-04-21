@@ -72,10 +72,15 @@ function mapMessageRow(row: PreviewMessageRow): ChatMessage {
 export function LiveChatPreview() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isFetchingOlder, setIsFetchingOlder] = useState(false)
+  const [hasMoreOlder, setHasMoreOlder] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [recentlyHighlightedIds, setRecentlyHighlightedIds] = useState<string[]>([])
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+  const oldestTimestampRef = useRef<string | null>(null)
+  const shouldAnchorOlderLoadRef = useRef(false)
+  const previousScrollHeightRef = useRef(0)
   const subscriptionRef = useRef<any>(null)
 
   const scrollToBottom = useCallback(() => {
@@ -109,6 +114,9 @@ export function LiveChatPreview() {
       }
 
       const mappedMessages = (data || []).map((row) => mapMessageRow(row as PreviewMessageRow)).reverse()
+
+      oldestTimestampRef.current = mappedMessages[0]?.createdAt ?? null
+      setHasMoreOlder((data || []).length === GLOBAL_CHAT_PAGE_SIZE)
       setMessages(mappedMessages)
       setError(null)
 
@@ -122,6 +130,78 @@ export function LiveChatPreview() {
       setIsLoading(false)
     }
   }, [])
+
+  const fetchOlderMessages = useCallback(async () => {
+    if (isFetchingOlder || !hasMoreOlder || !oldestTimestampRef.current) {
+      return
+    }
+
+    try {
+      const client = getSupabaseBrowserClient()
+
+      if (!client) {
+        return
+      }
+
+      const container = scrollContainerRef.current
+
+      if (container) {
+        previousScrollHeightRef.current = container.scrollHeight
+        shouldAnchorOlderLoadRef.current = true
+      }
+
+      setIsFetchingOlder(true)
+
+      const { data, error: fetchError } = await client
+        .from(MESSAGES_TABLE)
+        .select(MESSAGES_SELECT_WITH_PROFILE)
+        .eq("channel", GLOBAL_TEXT_CHANNEL)
+        .lt("created_at", oldestTimestampRef.current)
+        .order("created_at", { ascending: false })
+        .limit(GLOBAL_CHAT_PAGE_SIZE)
+
+      if (fetchError) {
+        throw fetchError
+      }
+
+      const olderMessages = (data || []).map((row) => mapMessageRow(row as PreviewMessageRow)).reverse()
+
+      if (olderMessages.length === 0) {
+        setHasMoreOlder(false)
+        return
+      }
+
+      oldestTimestampRef.current = olderMessages[0]?.createdAt ?? oldestTimestampRef.current
+      setHasMoreOlder((data || []).length === GLOBAL_CHAT_PAGE_SIZE)
+
+      setMessages((prev) => {
+        const existingIds = new Set(prev.map((message) => message.id))
+        const uniqueOlderMessages = olderMessages.filter((message) => !existingIds.has(message.id))
+
+        if (uniqueOlderMessages.length === 0) {
+          return prev
+        }
+
+        return [...uniqueOlderMessages, ...prev]
+      })
+    } catch (err) {
+      console.error("Error fetching older chat preview messages:", err)
+    } finally {
+      setIsFetchingOlder(false)
+    }
+  }, [hasMoreOlder, isFetchingOlder])
+
+  const handleMessageScroll = useCallback(() => {
+    const container = scrollContainerRef.current
+
+    if (!container || isFetchingOlder || !hasMoreOlder) {
+      return
+    }
+
+    if (container.scrollTop <= 24) {
+      void fetchOlderMessages()
+    }
+  }, [fetchOlderMessages, hasMoreOlder, isFetchingOlder])
 
   const subscribeToGlobalChat = useCallback(() => {
     const client = getSupabaseBrowserClient()
@@ -165,7 +245,7 @@ export function LiveChatPreview() {
                 return prev
               }
 
-              return [...prev, mappedMessage].slice(-GLOBAL_CHAT_PAGE_SIZE)
+              return [...prev, mappedMessage]
             })
 
             setRecentlyHighlightedIds((currentIds) => {
@@ -221,6 +301,23 @@ export function LiveChatPreview() {
     }
   }, [subscribeToGlobalChat])
 
+  useEffect(() => {
+    if (!shouldAnchorOlderLoadRef.current) {
+      return
+    }
+
+    const container = scrollContainerRef.current
+
+    if (!container) {
+      shouldAnchorOlderLoadRef.current = false
+      return
+    }
+
+    const nextScrollHeight = container.scrollHeight
+    container.scrollTop = nextScrollHeight - previousScrollHeightRef.current
+    shouldAnchorOlderLoadRef.current = false
+  }, [messages])
+
   return (
     <section className="glass-card-3d rounded-2xl p-4">
       <div className="mb-3 flex items-center gap-2">
@@ -228,15 +325,19 @@ export function LiveChatPreview() {
         <h3 className="glass-title-gold font-sans text-sm tracking-[0.08em] uppercase">Global Feed</h3>
       </div>
 
-      <div
-        ref={scrollContainerRef}
-        className="flex h-[320px] flex-col rounded-xl border border-[#153038] bg-[#071a1f]/80"
-      >
-        <div className="flex-1 min-h-0 space-y-3 overflow-y-auto p-3" style={{ overflowAnchor: "auto" }}>
+      <div className="flex h-[320px] flex-col rounded-xl border border-[#153038] bg-[#071a1f]/80">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 min-h-0 space-y-3 overflow-y-auto p-3"
+          style={{ overflowAnchor: "auto" }}
+          onScroll={handleMessageScroll}
+        >
         {isLoading ? (
           <p className="py-4 text-center font-sans text-xs text-[#8d9fa3]">Loading messages...</p>
         ) : error ? (
           <p className="py-4 text-center font-sans text-xs text-[#ff620f]">{error}</p>
+        ) : isFetchingOlder ? (
+          <p className="py-1 text-center font-sans text-[11px] text-[#8d9fa3]">Loading older messages...</p>
         ) : messages.length === 0 ? (
           <p className="py-4 text-center font-sans text-xs text-[#8d9fa3]">No global messages yet.</p>
         ) : (
