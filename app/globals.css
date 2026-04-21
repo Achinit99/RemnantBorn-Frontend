@@ -176,3 +176,33 @@
 .glass-body-offwhite {
   color: #edf4f7;
 }
+
+@keyframes gold-dust-fall {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.95);
+    opacity: 0;
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  55% {
+    opacity: 0.85;
+  }
+
+  100% {
+    transform: translate3d(-28px, 290px, 0) scale(0.18);
+    opacity: 0;
+  }
+}
+
+.gold-dust-particle {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 234, 174, 1) 0%, rgba(212, 175, 55, 0.95) 45%, rgba(212, 175, 55, 0) 100%);
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.65);
+  animation-name: gold-dust-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}

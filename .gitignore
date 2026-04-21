@@ -11,6 +11,11 @@
 !.yarn/releases
 !.yarn/versions
 
+# Ignore images and character assets
+public/assets/characters/
+public/assets/about/
+# public/
+
 # testing
 /coverage
 

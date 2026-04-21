@@ -14,6 +14,7 @@ import type {
   RealtimePostgresUpdatePayload,
   SupabaseClient,
 } from "@supabase/supabase-js"
+import { toast } from "sonner"
 
 import { AchievementComposer } from "@/components/community/achievement-composer"
 import { AchievementFeed } from "@/components/community/achievement-feed"
@@ -53,9 +54,37 @@ function pickString(row: RealtimePostRow, keys: string[]): string {
     if (typeof value === "string" && value.trim().length > 0) {
       return value.trim()
     }
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return String(value)
+    }
   }
 
   return ""
+}
+
+function parseJsonValue(value: string): unknown {
+  try {
+    return JSON.parse(value)
+  } catch {
+    return null
+  }
+}
+
+function normalizeAttachments(value: unknown): PostAttachment[] {
+  if (Array.isArray(value)) {
+    return value.filter((entry): entry is PostAttachment => Boolean(entry) && typeof entry === "object")
+  }
+
+  if (typeof value === "string") {
+    const parsed = parseJsonValue(value)
+
+    if (Array.isArray(parsed)) {
+      return parsed.filter((entry): entry is PostAttachment => Boolean(entry) && typeof entry === "object")
+    }
+  }
+
+  return []
 }
 
 function pickNumber(row: RealtimePostRow, keys: string[]): number {
@@ -79,13 +108,17 @@ function pickNumber(row: RealtimePostRow, keys: string[]): number {
 }
 
 function extractImageUrlFromAttachments(row: RealtimePostRow): string {
-  const attachments = row.attachments
+  const attachments = normalizeAttachments(row.attachments)
 
-  if (!Array.isArray(attachments)) {
-    return ""
+  if (attachments.length === 0) {
+    const legacyImageUrl = pickString(row, ["image_url", "imageUrl"])
+
+    if (legacyImageUrl) {
+      return legacyImageUrl
+    }
   }
 
-  for (const attachment of attachments as PostAttachment[]) {
+  for (const attachment of attachments) {
     if (!attachment || typeof attachment !== "object") {
       continue
     }
@@ -96,6 +129,23 @@ function extractImageUrlFromAttachments(row: RealtimePostRow): string {
   }
 
   return ""
+}
+
+function debugRealtimeInsertPost(row: RealtimePostRow) {
+  const postId = pickString(row, ["id"])
+  const content = pickString(row, ["content", "body", "text", "caption"])
+  const attachments = normalizeAttachments(row.attachments)
+  const attachmentCount = attachments.length
+
+  console.debug("[CommunityFeedPage] Realtime INSERT normalized post", {
+    postId,
+    content,
+    contentLength: content.length,
+    attachmentCount,
+    attachments,
+  })
+
+  toast.info(`Realtime post: content=${content.length} chars, attachments=${attachmentCount}`)
 }
 
 function formatPostedAt(createdAt: string): string {
@@ -323,7 +373,7 @@ async function mapRealtimePostToAchievementPost(supabase: SupabaseClient, row: R
     author: authorDetails.author,
     avatarUrl: authorDetails.avatarUrl,
     postedAt: formatPostedAt(createdAt),
-    content: pickString(row, ["content", "body", "text"]),
+    content: pickString(row, ["content", "body", "text", "caption"]),
     imageUrl: extractImageUrlFromAttachments(row) || null,
     likes: pickNumber(row, ["likes", "like_count", "likes_count"]),
     comments: pickNumber(row, ["comments", "comment_count", "comments_count"]),
@@ -848,7 +898,7 @@ export default function CommunityFeedPage() {
           return
         }
 
-        setPosts(firstPagePosts)
+        setPosts((prevPosts) => mergePosts(prevPosts, firstPagePosts))
         setNextPostsRangeStart(firstPagePosts.length)
         setHasMorePosts(firstPagePosts.length === FEED_POSTS_PAGE_SIZE)
       } catch (error) {
@@ -877,7 +927,12 @@ export default function CommunityFeedPage() {
           }
 
           try {
-            const mappedPost = await mapRealtimePostToAchievementPost(supabase, payload.new)
+            const row = ((payload as { new?: RealtimePostRow; record?: RealtimePostRow }).new ??
+              (payload as { record?: RealtimePostRow }).record ??
+              {}) as RealtimePostRow
+
+            debugRealtimeInsertPost(row)
+            const mappedPost = await mapRealtimePostToAchievementPost(supabase, row)
 
             if (!isSubscribed) {
               return
