@@ -14,6 +14,7 @@
 # Ignore images and character assets
 public/assets/characters/
 public/assets/old-film-strip/
+public/assets/fighters/
 # public/
 
 # testing
