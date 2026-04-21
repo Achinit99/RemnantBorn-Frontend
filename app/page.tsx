@@ -11,6 +11,8 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { FightRemnantsCharacterGroup } from "@/components/home/fight-remnants-character-group"
 
+type FighterParallax = Record<string, { x: number; y: number }>
+
 const discoverFilmFrames = [
   "/assets/old-film-strip/film1.jpeg",
   "/assets/old-film-strip/film2.jpeg",
@@ -20,10 +22,64 @@ const discoverFilmFrames = [
   "/assets/old-film-strip/film6.jpeg",
 ]
 
+const remnantFighters = [
+  {
+    key: "lira",
+    name: "Lira",
+    title: "The Verdant Witch",
+    image: "/assets/fighters/Lira.png",
+    auraClass: "fighter-aura-lira",
+    floatClass: "fighter-float-left",
+    stats: [
+      { label: "Attack", value: 72 },
+      { label: "Magic", value: 96 },
+      { label: "Speed", value: 79 },
+    ],
+  },
+  {
+    key: "zoory",
+    name: "Zoory",
+    title: "The Astral Ranger",
+    image: "/assets/fighters/Zoory.png",
+    auraClass: "fighter-aura-zoory",
+    floatClass: "fighter-float-center",
+    stats: [
+      { label: "Attack", value: 88 },
+      { label: "Magic", value: 84 },
+      { label: "Speed", value: 92 },
+    ],
+  },
+  {
+    key: "kade",
+    name: "Kade",
+    title: "The Shadow Blademaster",
+    image: "/assets/fighters/Kade.png",
+    auraClass: "fighter-aura-kade",
+    floatClass: "fighter-float-right",
+    stats: [
+      { label: "Attack", value: 93 },
+      { label: "Magic", value: 52 },
+      { label: "Speed", value: 89 },
+    ],
+  },
+]
+
+const fighterDustParticles = [
+  { left: "8%", size: 6, delay: "-0.2s", duration: "4.9s", opacity: 0.9 },
+  { left: "18%", size: 5, delay: "-1.5s", duration: "4.4s", opacity: 0.84 },
+  { left: "30%", size: 7, delay: "-0.9s", duration: "5.2s", opacity: 0.92 },
+  { left: "42%", size: 5, delay: "-2.4s", duration: "4.6s", opacity: 0.8 },
+  { left: "54%", size: 6, delay: "-1.1s", duration: "5s", opacity: 0.86 },
+  { left: "66%", size: 5, delay: "-2.2s", duration: "4.5s", opacity: 0.82 },
+  { left: "78%", size: 7, delay: "-0.6s", duration: "5.3s", opacity: 0.94 },
+  { left: "90%", size: 5, delay: "-1.8s", duration: "4.8s", opacity: 0.8 },
+]
+
 export default function RemnantbornLanding() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showFloatingButton, setShowFloatingButton] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [fighterParallax, setFighterParallax] = useState<FighterParallax>({})
 
   // Quick visual polish: changing navbar style based on scroll depth.
   useEffect(() => {
@@ -70,6 +126,28 @@ export default function RemnantbornLanding() {
       element.scrollIntoView({ behavior: 'smooth' })
     }
     setMobileMenuOpen(false)
+  }
+
+  const handleFighterMouseMove = (fighterKey: string, event: React.MouseEvent<HTMLElement>) => {
+    const target = event.currentTarget.getBoundingClientRect()
+    const x = (event.clientX - target.left) / target.width
+    const y = (event.clientY - target.top) / target.height
+
+    // Keep the depth subtle so it feels like layered 2.5D instead of a tilt effect.
+    const parallaxX = (x - 0.5) * 14
+    const parallaxY = (y - 0.5) * 10
+
+    setFighterParallax((prev) => ({
+      ...prev,
+      [fighterKey]: { x: parallaxX, y: parallaxY },
+    }))
+  }
+
+  const resetFighterParallax = (fighterKey: string) => {
+    setFighterParallax((prev) => ({
+      ...prev,
+      [fighterKey]: { x: 0, y: 0 },
+    }))
   }
 
   return (
@@ -355,6 +433,99 @@ export default function RemnantbornLanding() {
                 className="object-contain object-right-bottom opacity-95"
               />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Remnant Fighters Section */}
+      <section id="fighters" className="relative overflow-hidden bg-[#051312] py-18 md:py-24">
+        <div className="mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
+          <h2 className="mt-3 text-center font-sans text-3xl font-normal tracking-[0.15em] text-[#CCAE68] uppercase md:mt-4 md:text-4xl lg:mt-5 lg:text-5xl">
+            Remnant Fighters
+          </h2>
+
+          <div className="relative mt-12 overflow-hidden rounded-[20px] border border-[#A6A921]/30 bg-[radial-gradient(circle_at_center,rgba(166,169,33,0.18)_0%,rgba(5,19,18,0.92)_58%)] px-6 py-10 sm:px-8 sm:py-12 lg:px-12 lg:py-14">
+            <div className="pointer-events-none absolute inset-x-0 bottom-[3%] z-[1] h-[48%] overflow-hidden sm:bottom-[4%] sm:h-[52%] md:h-[56%] lg:bottom-[5%] lg:h-[60%] xl:h-[64%]">
+              <Image
+                src="/assets/fighters/fighters-rock.png"
+                alt=""
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 92vw, 1200px"
+                className="object-cover object-[center_38%] opacity-78"
+              />
+            </div>
+
+            <div className="fighter-fog fighter-fog-back" aria-hidden="true" />
+
+            <div className="relative z-[3] grid grid-cols-1 gap-12 md:grid-cols-2 xl:grid-cols-3 xl:gap-8">
+              {remnantFighters.map((fighter) => (
+                <article
+                  key={fighter.key}
+                  className="fighter-card group relative mx-auto flex w-full max-w-[440px] flex-col items-center rounded-2xl border border-[#A6A921]/28 bg-[linear-gradient(180deg,rgba(5,19,18,0.55)_0%,rgba(5,19,18,0.3)_100%)] px-4 pb-5 pt-3 text-center transition-transform duration-300 hover:scale-[1.05]"
+                  onMouseMove={(event) => handleFighterMouseMove(fighter.key, event)}
+                  onMouseLeave={() => resetFighterParallax(fighter.key)}
+                >
+                  <div className="fighter-card-trace" aria-hidden="true" />
+                  <div className="fighter-card-hover-dust" aria-hidden="true" />
+
+                  <div className={`pointer-events-none absolute bottom-20 left-1/2 h-44 w-44 -translate-x-1/2 rounded-full blur-2xl transition-all duration-300 group-hover:scale-110 ${fighter.auraClass}`} />
+
+                  <div
+                    className="relative h-[240px] w-[190px] transition-transform duration-200 ease-out"
+                    style={{
+                      transform: `translate3d(${fighterParallax[fighter.key]?.x ?? 0}px, ${fighterParallax[fighter.key]?.y ?? 0}px, 0)`,
+                    }}
+                  >
+                    <div className={`relative h-full w-full ${fighter.floatClass}`}>
+                      <Image
+                        src={fighter.image}
+                        alt={fighter.name}
+                        fill
+                        sizes="(max-width: 1024px) 190px, 220px"
+                        className="object-contain object-bottom"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="fighter-ground-dust" aria-hidden="true">
+                    {fighterDustParticles.map((particle, index) => (
+                      <span
+                        key={`${fighter.key}-dust-${index}`}
+                        className="fighter-ground-dust-particle"
+                        style={{
+                          left: particle.left,
+                          width: `${particle.size}px`,
+                          height: `${particle.size}px`,
+                          animationDelay: particle.delay,
+                          animationDuration: particle.duration,
+                          opacity: particle.opacity,
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  <h3 className="mt-4 font-sans text-2xl tracking-[0.12em] text-[#FFFFFF] uppercase">{fighter.name}</h3>
+                  <p className="mt-1 font-sans text-xs tracking-[0.14em] text-[#CCAE68] uppercase">{fighter.title}</p>
+
+                  <div className="mt-5 w-full max-w-[340px] space-y-2.5 translate-y-3 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                    {fighter.stats.map((stat) => (
+                      <div key={`${fighter.key}-${stat.label}`} className="grid grid-cols-[70px_1fr_34px] items-center gap-2 text-left">
+                        <span className="font-sans text-[11px] tracking-[0.08em] text-[#D9D9D9] uppercase">{stat.label}</span>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-[#FFFFFF]/12">
+                          <div
+                            className="h-full origin-left scale-x-0 rounded-full bg-[linear-gradient(90deg,#A6A921_0%,#CCAE68_100%)] transition-transform duration-700 ease-out group-hover:scale-x-100"
+                            style={{ width: `${stat.value}%` }}
+                          />
+                        </div>
+                        <span className="font-sans text-[10px] tracking-[0.08em] text-[#FFFFFF]">{stat.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="fighter-fog fighter-fog-front" aria-hidden="true" />
           </div>
         </div>
       </section>
