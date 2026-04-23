@@ -6,6 +6,7 @@
 
 import { Menu, User, X } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
@@ -142,8 +143,17 @@ export default function SignupPage() {
 
         <main className="mx-auto flex w-full max-w-4xl flex-1 items-center justify-center px-6 pb-12 text-center md:px-12 lg:px-16">
           <div className="w-full">
-            <p className="font-sans text-4xl tracking-[0.1em] text-[#c9b896] md:text-5xl lg:text-6xl">Remnantborn</p>
-            <p className="mt-1 font-serif text-xl italic text-[#b8a882] md:text-2xl">The Last Tear</p>
+            <div className="mx-auto w-full max-w-[18.75rem] md:max-w-[22.5rem] lg:max-w-[26rem]">
+              <Image
+                src="/assets/brand/game-name.png"
+                alt="Remnantborn The Last Tear"
+                width={589}
+                height={182}
+                quality={100}
+                sizes="(max-width: 768px) 300px, (max-width: 1024px) 360px, 416px"
+                className="h-auto w-full object-contain"
+              />
+            </div>
 
             <h1 className="mt-10 font-sans text-2xl leading-tight tracking-[0.08em] text-[#d4c5a9] uppercase md:text-4xl">
               Welcome To The <span className="text-[#c9b896]">Game Remnantborn</span>
