@@ -179,6 +179,40 @@
   color: #d9d9d9;
 }
 
+@keyframes brand-floating {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes brand-soft-glow {
+  0% {
+    filter: drop-shadow(0 0 8px rgba(204, 174, 104, 0.22));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 16px rgba(204, 174, 104, 0.42));
+  }
+
+  100% {
+    filter: drop-shadow(0 0 8px rgba(204, 174, 104, 0.22));
+  }
+}
+
+.brand-floating-glow {
+  animation: brand-floating 4.8s ease-in-out infinite, brand-soft-glow 3.6s ease-in-out infinite;
+  will-change: transform, filter;
+  transform: translateZ(0);
+}
+
 @keyframes gold-dust-fall {
   0% {
     transform: translate3d(0, 0, 0) scale(0.95);
@@ -432,14 +466,20 @@
 
 .fighter-float-left {
   animation: fighter-float-left 4.8s ease-in-out infinite;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .fighter-float-right {
   animation: fighter-float-right 5.2s ease-in-out infinite;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .fighter-float-center {
   animation: fighter-float-center 5s ease-in-out infinite;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .fighter-aura-lira {
@@ -489,13 +529,13 @@
   }
 }
 
-@keyframes fighter-border-trace-spin {
+@keyframes fighter-border-line-run {
   0% {
-    transform: rotate(0deg);
+    stroke-dashoffset: 0;
   }
 
   100% {
-    transform: rotate(360deg);
+    stroke-dashoffset: -1000;
   }
 }
 
@@ -551,6 +591,8 @@
   background: radial-gradient(circle, rgba(255, 234, 174, 1) 0%, rgba(212, 175, 55, 0.92) 45%, rgba(212, 175, 55, 0) 100%);
   box-shadow: 0 0 14px rgba(212, 175, 55, 0.8);
   animation: fighter-ground-dust-fall linear infinite;
+  will-change: transform, opacity;
+  transform: translateZ(0);
 }
 
 .fighter-card-trace {
@@ -561,62 +603,40 @@
   opacity: 0;
   transition: opacity 220ms ease;
   z-index: 8;
-  background: conic-gradient(
-    from 0deg,
-    rgba(255, 227, 145, 0) 0deg,
-    rgba(255, 227, 145, 0) 282deg,
-    rgba(255, 221, 124, 0.98) 325deg,
-    rgba(255, 227, 145, 0.1) 348deg,
-    rgba(255, 227, 145, 0) 360deg
-  );
-  animation: fighter-border-trace-spin 2.8s linear infinite;
 }
 
-.fighter-card-trace::before {
-  content: "";
-  position: absolute;
-  inset: 1.4px;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgba(5, 19, 18, 0.66) 0%, rgba(5, 19, 18, 0.4) 100%);
+.fighter-card-trace-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
-.fighter-card-hover-dust {
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  opacity: 0;
-  transition: opacity 220ms ease;
-  z-index: 7;
+.fighter-card-trace-rail {
+  fill: none;
+  stroke: rgba(255, 211, 105, 0.2);
+  stroke-width: 1;
 }
 
-.fighter-card-hover-dust::before {
-  content: "";
-  position: absolute;
-  inset: 1px;
-  border-radius: inherit;
-  border: 1px solid rgba(255, 226, 140, 0.25);
-  box-shadow: inset 0 0 16px rgba(255, 211, 105, 0.14), 0 0 12px rgba(255, 198, 80, 0.22);
+.fighter-card-trace-runner {
+  fill: none;
+  stroke: rgba(255, 223, 142, 0.98);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 145 855;
+  stroke-dashoffset: 0;
+  filter: drop-shadow(0 0 3px rgba(255, 214, 109, 0.65));
 }
 
-.fighter-card-hover-dust::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background-image: radial-gradient(circle at 8px 8px, rgba(255, 222, 129, 0.82) 0 1.15px, transparent 1.25px);
-  background-size: 22px 22px;
-  filter: blur(0.2px);
-  animation: fighter-hover-dust-sweep 2.4s linear infinite;
-}
-
-.fighter-card:hover .fighter-card-trace,
-.fighter-card:hover .fighter-card-hover-dust {
+.fighter-card:hover .fighter-card-trace {
   opacity: 1;
 }
 
 .fighter-card:hover .fighter-card-trace {
-  filter: drop-shadow(0 0 8px rgba(255, 216, 115, 0.48));
+  filter: drop-shadow(0 0 5px rgba(255, 216, 115, 0.35));
+}
+
+.fighter-card:hover .fighter-card-trace-runner {
+  animation: fighter-border-line-run 2.25s linear infinite;
 }
 
 @keyframes fighter-fog-drift {
@@ -647,6 +667,8 @@
   background-repeat: repeat-x;
   background-size: 760px auto;
   mix-blend-mode: screen;
+  will-change: transform, opacity;
+  transform: translateZ(0);
 }
 
 .fighter-fog-back {
