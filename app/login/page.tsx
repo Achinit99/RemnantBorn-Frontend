@@ -87,15 +87,16 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#020b0d] text-white">
-      <video autoPlay loop muted playsInline className="absolute inset-0 h-full w-full object-cover">
+      <video autoPlay loop muted playsInline preload="metadata" className="absolute inset-0 h-full w-full object-contain object-center">
         <source src="/videos/hero-bg.mp4" type="video/mp4" />
+        <source src="/videos/bg-video.mp4" type="video/mp4" />
       </video>
 
-      <div className="absolute inset-0 bg-[radial-gradient(45%_65%_at_75%_62%,rgba(161,151,84,0.38)_0%,rgba(24,43,35,0.12)_46%,rgba(2,10,13,0.9)_100%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,20,17,0.78)_0%,rgba(1,10,12,0.93)_48%,rgba(2,10,12,0.96)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(45%_65%_at_75%_62%,rgba(161,151,84,0.28)_0%,rgba(24,43,35,0.08)_46%,rgba(2,10,13,0.58)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,20,17,0.42)_0%,rgba(1,10,12,0.58)_48%,rgba(2,10,12,0.68)_100%)]" />
 
       <div className="relative z-10 flex min-h-screen flex-col pt-16">
-        <header className="fixed left-0 right-0 top-0 z-40 w-full px-6 py-4 transition-all duration-300 md:px-12 lg:px-16">
+        <header className="fixed left-0 right-0 top-0 z-[130] w-full px-6 py-4 transition-all duration-300 md:px-12 lg:px-16">
           <nav className="flex items-center justify-between">
             <button
               className="text-[#d4c5a9] md:hidden"
@@ -106,10 +107,10 @@ export default function LoginPage() {
             </button>
 
             <div className="hidden items-center gap-8 md:flex lg:gap-12">
-              <Link href="/#about" className="font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white">
+              <Link href="/#about" className="font-sans text-base tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white">
                 About
               </Link>
-              <Link href="/#features" className="font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white">
+              <Link href="/#features" className="font-sans text-base tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white">
                 Game Features
               </Link>
             </div>
@@ -117,10 +118,10 @@ export default function LoginPage() {
             <div className="hidden md:block" />
 
             <div className="hidden items-center gap-8 md:flex lg:gap-12">
-              <Link href="/#community" className="font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white">
+              <Link href="/#community" className="font-sans text-base tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white">
                 Community
               </Link>
-              <Link href="/login" className="font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white">
+              <Link href="/login" className="font-sans text-base tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white">
                 Login
               </Link>
               <button className="text-[#d4c5a9] transition-colors hover:text-white" aria-label="User profile">
@@ -135,23 +136,45 @@ export default function LoginPage() {
 
           {mobileMenuOpen && (
             <div className="mt-4 flex flex-col gap-4 rounded-lg bg-black/80 p-6 backdrop-blur-sm md:hidden">
-              <Link href="/#about" onClick={() => setMobileMenuOpen(false)} className="font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white">
+              <Link href="/#about" onClick={() => setMobileMenuOpen(false)} className="font-sans text-base tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white">
                 About
               </Link>
-              <Link href="/#features" onClick={() => setMobileMenuOpen(false)} className="font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white">
+              <Link href="/#features" onClick={() => setMobileMenuOpen(false)} className="font-sans text-base tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white">
                 Game Features
               </Link>
-              <Link href="/#community" onClick={() => setMobileMenuOpen(false)} className="font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white">
+              <Link href="/#community" onClick={() => setMobileMenuOpen(false)} className="font-sans text-base tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white">
                 Community
               </Link>
-              <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="font-sans text-sm tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white">
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="font-sans text-base tracking-[0.2em] text-[#d4c5a9] uppercase transition-colors hover:text-white">
                 Login
               </Link>
             </div>
           )}
         </header>
 
-        <main className="mx-auto flex w-full max-w-4xl flex-1 items-center justify-center px-6 pb-12 text-center md:px-12 lg:px-16">
+        <main className="relative mx-auto flex w-full max-w-4xl flex-1 items-center justify-center px-6 pb-12 text-center md:px-12 lg:px-16">
+          <div className="pointer-events-none absolute bottom-0 left-[-2.5rem] hidden w-[230px] opacity-85 lg:block xl:w-[280px]">
+            <Image
+              src="/assets/fighters/Lira.png"
+              alt=""
+              width={280}
+              height={386}
+              sizes="(max-width: 1279px) 230px, 280px"
+              className="h-auto w-full object-contain brightness-110 saturate-110"
+            />
+          </div>
+
+          <div className="pointer-events-none absolute bottom-0 right-[-2.5rem] hidden w-[230px] opacity-85 lg:block xl:w-[280px]">
+            <Image
+              src="/assets/fighters/Kade.png"
+              alt=""
+              width={280}
+              height={386}
+              sizes="(max-width: 1279px) 230px, 280px"
+              className="h-auto w-full object-contain brightness-110 saturate-110"
+            />
+          </div>
+
           <div className="w-full">
             <div className="mx-auto w-full max-w-[18.75rem] md:max-w-[22.5rem] lg:max-w-[26rem]">
               <Image
@@ -165,7 +188,7 @@ export default function LoginPage() {
               />
             </div>
 
-            <h1 className="mt-10 font-sans text-2xl leading-tight tracking-[0.08em] text-[#d4c5a9] uppercase md:text-4xl">
+            <h1 className="mt-10 font-sans text-xl leading-snug tracking-[0.08em] text-[#d4c5a9] uppercase md:text-xl">
               Welcome To The <span className="text-[#c9b896]">Game Remnantborn</span>
             </h1>
 
