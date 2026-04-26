@@ -8,7 +8,7 @@ import { ChevronDown, User, Menu, X, Instagram, Facebook, Twitter } from "lucide
 import Image from "next/image"
 import Link from "next/link"
 import { useState, useEffect, useRef, type CSSProperties } from "react"
-import { motion, AnimatePresence, useMotionTemplate, useMotionValue, useSpring, useTransform } from "framer-motion"
+import { motion, AnimatePresence, useMotionTemplate, useMotionValue, useScroll, useSpring, useTransform } from "framer-motion"
 import Lenis from "@studio-freight/lenis"
 import { FightRemnantsCharacterGroup } from "@/components/home/fight-remnants-character-group"
 
@@ -93,6 +93,15 @@ const gameplayFeatures = [
     title: "Faction Hunt Events",
     description: "Join rotating server events where squads race to purify corrupted sectors.",
   },
+]
+
+const aboutZooryDust = [
+  { left: "10%", size: 6, delay: 0.08, duration: 2.5 },
+  { left: "24%", size: 5, delay: 0.36, duration: 2.2 },
+  { left: "40%", size: 7, delay: 0.7, duration: 2.8 },
+  { left: "56%", size: 4, delay: 1.04, duration: 2.35 },
+  { left: "72%", size: 6, delay: 1.36, duration: 2.65 },
+  { left: "86%", size: 4, delay: 1.72, duration: 2.2 },
 ]
 
 type IntroPhase = "loading" | "assembled" | "transitioning" | "done"
@@ -266,6 +275,18 @@ export default function RemnantbornLanding() {
   const [viewportHeight, setViewportHeight] = useState(0)
   const [fighterParallax, setFighterParallax] = useState<FighterParallax>({})
   const lenisRef = useRef<Lenis | null>(null)
+  const { scrollY } = useScroll()
+  const logoProgress = useSpring(useTransform(scrollY, [0, 260], [0, 1], { clamp: true }), {
+    stiffness: 140,
+    damping: 26,
+    mass: 0.45,
+  })
+  const heroLogoScale = useTransform(logoProgress, [0, 1], [1, 0.34])
+  const heroLogoY = useTransform(logoProgress, [0, 1], [0, -190])
+  const heroLogoOpacity = useTransform(logoProgress, [0, 1], [1, 0])
+  const navLogoOpacity = useTransform(logoProgress, [0, 1], [0, 1])
+  const navLogoScale = useTransform(logoProgress, [0, 1], [0.86, 1])
+  const navLogoY = useTransform(logoProgress, [0, 1], [18, 0])
   const beginIntroTransition = () => {
     if (introPhase !== "assembled") {
       return
@@ -442,22 +463,24 @@ export default function RemnantbornLanding() {
   const introGlideY = viewportHeight > 0 ? -((viewportHeight / 2) - 66) : -360
 
   return (
-    <div className="relative w-full overflow-hidden">
+    <div className="relative isolate w-full overflow-hidden bg-black">
       {/* Video Element */}
       <video
         autoPlay
         loop
         muted
         playsInline
-        className="absolute inset-0 w-full h-full object-cover" //object-contain
+        preload="metadata"
+        className="pointer-events-none absolute inset-0 h-screen w-full object-cover object-center"
       >
       <source src="/videos/hero-bg.mp4" type="video/mp4" />
+      <source src="/videos/bg-video.mp4" type="video/mp4" />
       {/* if video not view */}
       Your browser does not support the video tag.
       </video>
 
       {/* Dark overlay for better text readability */}
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="pointer-events-none absolute inset-0 h-screen w-full bg-black/20" />
 
       <AnimatePresence>
         {introPhase !== "done" && (
@@ -694,10 +717,10 @@ export default function RemnantbornLanding() {
       {introPhase === "done" && (
         <>
       {/* Content */}
-      <div className="relative z-10 flex min-h-screen flex-col pt-16">
+      <div className="relative flex min-h-screen flex-col pt-16">
         {/* Navigation */}
         <header 
-          className={`fixed left-0 right-0 top-0 z-40 w-full px-6 py-4 transition-all duration-300 md:px-12 lg:px-16 ${
+          className={`fixed left-0 right-0 top-0 z-[1000] w-full px-6 py-4 transition-all duration-300 md:px-12 lg:px-16 ${
             isScrolled 
               ? 'bg-black/70 backdrop-blur-md shadow-lg' 
               : 'bg-transparent'
@@ -709,14 +732,14 @@ export default function RemnantbornLanding() {
               <a
                 href="#about"
                 onClick={(e) => handleSmoothScroll(e, 'about')}
-                className="cursor-pointer font-sans text-sm tracking-[0.2em] text-[#D9D9D9] uppercase transition-colors hover:text-[#FFFFFF]"
+                className="cursor-pointer font-sans text-base tracking-[0.2em] text-[#D9D9D9] uppercase transition-colors hover:text-[#FFFFFF]"
               >
                 About
               </a>
               <a
                 href="#features"
                 onClick={(e) => handleSmoothScroll(e, 'features')}
-                className="cursor-pointer font-sans text-sm tracking-[0.2em] text-[#D9D9D9] uppercase transition-colors hover:text-[#FFFFFF]"
+                className="cursor-pointer font-sans text-base tracking-[0.2em] text-[#D9D9D9] uppercase transition-colors hover:text-[#FFFFFF]"
               >
                 Game Features
               </a>
@@ -734,11 +757,12 @@ export default function RemnantbornLanding() {
             <motion.button
               type="button"
               onClick={handleScrollToTop}
-              initial={{ opacity: 0, scale: 0.9, y: -6 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
               aria-label="Back to top"
               className="absolute left-1/2 top-1/2 hidden w-[10.5rem] -translate-x-1/2 -translate-y-1/2 cursor-pointer md:block"
+              style={{ opacity: navLogoOpacity, scale: navLogoScale, y: navLogoY }}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
             >
@@ -758,13 +782,13 @@ export default function RemnantbornLanding() {
               <a
                 href="#community"
                 onClick={(e) => handleSmoothScroll(e, 'community')}
-                className="cursor-pointer font-sans text-sm tracking-[0.2em] text-[#D9D9D9] uppercase transition-colors hover:text-[#FFFFFF]"
+                className="cursor-pointer font-sans text-base tracking-[0.2em] text-[#D9D9D9] uppercase transition-colors hover:text-[#FFFFFF]"
               >
                 Community
               </a>
               <Link
                 href="/login"
-                className="font-sans text-sm tracking-[0.2em] text-[#D9D9D9] uppercase transition-colors hover:text-[#FFFFFF]"
+                className="font-sans text-base tracking-[0.2em] text-[#D9D9D9] uppercase transition-colors hover:text-[#FFFFFF]"
               >
                 Login
               </Link>
@@ -793,27 +817,27 @@ export default function RemnantbornLanding() {
               <a
                 href="#about"
                 onClick={(e) => handleSmoothScroll(e, 'about')}
-                className="cursor-pointer font-sans text-sm tracking-[0.2em] text-[#D9D9D9] uppercase transition-colors hover:text-[#FFFFFF]"
+                className="cursor-pointer font-sans text-base tracking-[0.2em] text-[#D9D9D9] uppercase transition-colors hover:text-[#FFFFFF]"
               >
                 About
               </a>
               <a
                 href="#features"
                 onClick={(e) => handleSmoothScroll(e, 'features')}
-                className="cursor-pointer font-sans text-sm tracking-[0.2em] text-[#D9D9D9] uppercase transition-colors hover:text-[#FFFFFF]"
+                className="cursor-pointer font-sans text-base tracking-[0.2em] text-[#D9D9D9] uppercase transition-colors hover:text-[#FFFFFF]"
               >
                 Game Features
               </a>
               <a
                 href="#community"
                 onClick={(e) => handleSmoothScroll(e, 'community')}
-                className="cursor-pointer font-sans text-sm tracking-[0.2em] text-[#D9D9D9] uppercase transition-colors hover:text-[#FFFFFF]"
+                className="cursor-pointer font-sans text-base tracking-[0.2em] text-[#D9D9D9] uppercase transition-colors hover:text-[#FFFFFF]"
               >
                 Community
               </a>
               <Link
                 href="/login"
-                className="font-sans text-sm tracking-[0.2em] text-[#D9D9D9] uppercase transition-colors hover:text-[#FFFFFF]"
+                className="font-sans text-base tracking-[0.2em] text-[#D9D9D9] uppercase transition-colors hover:text-[#FFFFFF]"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Login
@@ -830,6 +854,7 @@ export default function RemnantbornLanding() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            style={{ scale: heroLogoScale, y: heroLogoY, opacity: heroLogoOpacity }}
           >
             <div className="brand-floating-glow">
               <Image
@@ -846,14 +871,14 @@ export default function RemnantbornLanding() {
           </motion.div>
 
           {/* Tagline */}
-          <p className="mt-6 font-sans text-xs tracking-[0.25em] text-[#A6A921] uppercase drop-shadow sm:text-sm md:mt-8 md:text-base">
+          <p className="mt-6 font-sans text-xs tracking-[0.25em] text-white uppercase drop-shadow sm:text-sm md:mt-8 md:text-base">
             Fight the Remnants, Awaken Your True Power
           </p>
 
           {/* CTA Buttons */}
           <div className="mt-16 flex flex-col items-center gap-6 sm:flex-row sm:gap-8 md:mt-24 lg:mt-32 lg:gap-48">
             <MagneticButton
-              className="min-w-[160px] rounded-[18px] border border-[#A6A921]/50 px-8 py-3 font-sans text-[13px] font-normal tracking-[0.15em] text-[#D9D9D9] backdrop-blur-sm transition-all duration-300 hover:border-[#CCAE68] hover:text-[#FFFFFF]"
+              className="min-w-[160px] rounded-[24px] border border-[#A6A921]/50 px-8 py-3 font-sans text-[14px] font-normal tracking-[0.15em] text-[#D9D9D9] backdrop-blur-sm transition-all duration-300 hover:border-[#CCAE68] hover:text-[#FFFFFF]"
               style={{
                 background: 'linear-gradient(145deg, rgba(5, 19, 18, 0.78) 0%, rgba(40, 57, 26, 0.74) 52%, rgba(166, 169, 33, 0.28) 100%)',
               }}
@@ -862,7 +887,7 @@ export default function RemnantbornLanding() {
             </MagneticButton>
 
             <MagneticButton
-              className="min-w-[160px] rounded-[18px] border border-[#A6A921]/50 px-8 py-3 font-sans text-[13px] font-normal tracking-[0.15em] text-[#D9D9D9] backdrop-blur-sm transition-all duration-300 hover:border-[#CCAE68] hover:text-[#FFFFFF]"
+              className="min-w-[160px] rounded-[24px] border border-[#A6A921]/50 px-8 py-3 font-sans text-[14px] font-normal tracking-[0.15em] text-[#D9D9D9] backdrop-blur-sm transition-all duration-300 hover:border-[#CCAE68] hover:text-[#FFFFFF]"
               style={{
                 background: 'linear-gradient(145deg, rgba(5, 19, 18, 0.78) 0%, rgba(40, 57, 26, 0.74) 52%, rgba(166, 169, 33, 0.28) 100%)',
               }}
@@ -873,12 +898,12 @@ export default function RemnantbornLanding() {
 
           {/* Scroll Indicator */}
           <div className="mt-12 flex flex-col items-center gap-1 md:mt-16">
-            <span className="font-sans text-xs tracking-[0.3em] text-[#D9D9D9] uppercase">
+            <span className="font-sans text-sm font-bold tracking-[0.3em] text-[#D9D9D9] uppercase md:text-base">
               Scroll
             </span>
             <div className="flex flex-col items-center">
-              <ChevronDown size={16} className="text-[#D9D9D9] animate-bounce" />
-              <ChevronDown size={16} className="-mt-2 text-[#D9D9D9] animate-bounce" style={{ animationDelay: '0.1s' }} />
+              <ChevronDown size={20} className="text-[#D9D9D9] animate-bounce" />
+              <ChevronDown size={20} className="-mt-2 text-[#D9D9D9] animate-bounce" style={{ animationDelay: '0.1s' }} />
             </div>
           </div>
         </main>
@@ -893,14 +918,56 @@ export default function RemnantbornLanding() {
         whileInView="visible"
         viewport={{ once: false, amount: 0.2 }}
       >
-        <div className="mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
+        <div className="relative mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
+          <motion.div
+            className="pointer-events-none absolute right-[8%] top-[-8.5rem] z-[1] hidden w-[285px] opacity-55 lg:block xl:w-[350px]"
+            animate={{ y: [0, -16, 0], rotate: [0, 2, 0, -2, 0] }}
+            transition={{ duration: 9.2, ease: "easeInOut", repeat: Number.POSITIVE_INFINITY }}
+            style={{ filter: "brightness(1.08) saturate(1.04)" }}
+            aria-hidden="true"
+          >
+            <Image
+              src="/assets/fighters/Zoory.png"
+              alt=""
+              width={350}
+              height={484}
+              sizes="(max-width: 1279px) 285px, 350px"
+              className="h-auto w-full object-contain"
+              priority={false}
+            />
+
+            <div className="absolute left-1/2 top-[90%] h-24 w-[68%] -translate-x-1/2 overflow-hidden">
+              {aboutZooryDust.map((particle, index) => (
+                <motion.span
+                  key={`about-zoory-dust-${index}`}
+                  className="absolute rounded-full"
+                  style={{
+                    left: particle.left,
+                    width: `${particle.size}px`,
+                    height: `${particle.size}px`,
+                    background:
+                      "radial-gradient(circle, rgba(255,236,170,1) 0%, rgba(212,175,55,0.95) 45%, rgba(212,175,55,0) 100%)",
+                    boxShadow: "0 0 12px rgba(212,175,55,0.65)",
+                  }}
+                  animate={{ y: [0, 34], x: [0, -10], opacity: [0, 0.9, 0], scale: [1, 0.4] }}
+                  transition={{
+                    duration: particle.duration,
+                    repeat: Number.POSITIVE_INFINITY,
+                    ease: "linear",
+                    delay: particle.delay,
+                  }}
+                />
+              ))}
+            </div>
+          </motion.div>
+
           {/* Section Title */}
-          <h2 className="mt-3 font-sans text-3xl font-normal tracking-[0.15em] text-[#CCAE68] uppercase md:mt-4 md:text-4xl lg:mt-5 lg:text-5xl">
+          <h2 className="relative z-10 mt-3 font-sans text-3xl font-normal tracking-[0.15em] text-[#CCAE68] uppercase md:mt-4 md:text-4xl lg:mt-5 lg:text-5xl">
             Fight The Remnants
           </h2>
 
           {/* Content Grid */}
-          <div className="mt-12 flex flex-col items-center gap-12 lg:mt-16 lg:flex-row lg:items-center lg:gap-20 xl:gap-24">
+          <div className="relative z-10 mt-12 flex flex-col items-center gap-12 lg:mt-16 lg:flex-row lg:items-center lg:gap-20 xl:gap-24">
             {/* Left Column - Animated Character Group */}
             <div className="flex w-full flex-shrink-0 justify-center lg:w-[43%] lg:justify-start lg:pr-4 lg:-ml-6 xl:pr-8 xl:-ml-10">
               <FightRemnantsCharacterGroup />
@@ -935,13 +1002,27 @@ export default function RemnantbornLanding() {
       {/* Discover Section */}
       <motion.section
         id="discover"
-        className="relative overflow-hidden bg-[#051312] py-18 md:py-24"
+        className="relative overflow-hidden py-18 md:py-24"
         variants={sectionRevealVariants}
         initial="hidden"
         whileInView="visible"
         viewport={{ once: false, amount: 0.2 }}
       >
-        <div className="mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 h-full w-full object-cover object-center"
+        >
+          <source src="/videos/hero-bg.mp4" type="video/mp4" />
+          <source src="/videos/bg-video.mp4" type="video/mp4" />
+        </video>
+
+        <div className="absolute inset-0 bg-[linear-gradient(160deg,rgba(5,19,18,0.72)_0%,rgba(5,12,13,0.82)_45%,rgba(3,11,13,0.76)_100%)] backdrop-blur-[2px]" />
+
+        <div className="relative z-10 mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
           <h2 className="mt-3 font-sans text-3xl font-normal tracking-[0.15em] text-[#CCAE68] uppercase md:mt-4 md:text-4xl lg:mt-5 lg:text-5xl">
             Discover The Journey
           </h2>
@@ -1174,12 +1255,14 @@ export default function RemnantbornLanding() {
           loop
           muted
           playsInline
-          className="absolute inset-0 h-full w-full object-cover"
+          preload="metadata"
+          className="absolute inset-0 h-full w-full object-contain object-center"
         >
           <source src="/videos/hero-bg.mp4" type="video/mp4" />
+          <source src="/videos/bg-video.mp4" type="video/mp4" />
         </video>
 
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(5,12,13,0.95)_0%,rgba(3,11,13,0.9)_45%,rgba(13,20,13,0.4)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(5,12,13,0.62)_0%,rgba(3,11,13,0.55)_45%,rgba(13,20,13,0.25)_100%)]" />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 pb-8 pt-16 md:px-12 md:pb-10 md:pt-24 lg:px-16">
           <div className="mx-auto max-w-5xl rounded-[20px] border border-[#A6A921]/45 bg-[linear-gradient(160deg,rgba(166,169,33,0.16)_0%,rgba(5,19,18,0.68)_46%,rgba(5,19,18,0.8)_100%)] px-6 py-10 text-center shadow-[0_28px_80px_rgba(0,0,0,0.45)] backdrop-blur-sm md:px-12 md:py-16">
