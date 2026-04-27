@@ -8,7 +8,7 @@ import { Menu, User, X } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
-import { useState, type FormEvent } from "react"
+import { Suspense, useState, type FormEvent } from "react"
 
 import { authApi, extractAuthTokens, getApiErrorMessage } from "@/lib/auth-api"
 import {
@@ -20,7 +20,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 export const dynamic = 'force-dynamic'; // Prerendering Force Disable
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [email, setEmail] = useState("")
@@ -260,5 +260,19 @@ export default function LoginPage() {
         </main>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#020b0d]">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#6b5f45]/60 border-t-[#d4c5a9]" aria-label="Loading login" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   )
 }
