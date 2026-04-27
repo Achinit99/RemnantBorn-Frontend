@@ -15,7 +15,6 @@
 public/assets/
 # Ignore all videos in public folder
 public/videos/
-public/images/
 
 # testing
 /coverage

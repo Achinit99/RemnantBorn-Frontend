@@ -6,7 +6,8 @@ import { Pencil } from "lucide-react"
 
 import type { PlayerProfile } from "@/components/community/types"
 
-const DEFAULT_GAMING_AVATAR_URL = "/images/default-gaming-avatar.svg"
+const storageUrl = (process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL ?? "").replace(/\/$/, "")
+const DEFAULT_GAMING_AVATAR_URL = `${storageUrl}/images/default-gaming-avatar.svg`
 
 interface PlayerProfileSidebarProps {
   profile: PlayerProfile

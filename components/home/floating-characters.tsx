@@ -4,6 +4,9 @@ import Image from "next/image"
 import { motion } from "framer-motion"
 import { useEffect, useMemo, useState } from "react"
 
+const storageUrl = (process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL ?? "").replace(/\/$/, "")
+const withStorage = (assetPath: string) => `${storageUrl}${assetPath}`
+
 type FloatingCharacterConfig = {
   id: string
   src: string
@@ -20,7 +23,7 @@ type FloatingCharacterConfig = {
 const CHARACTERS: FloatingCharacterConfig[] = [
   {
     id: "lira",
-    src: "/assets/fighters/Lira.png",
+    src: withStorage("/assets/fighters/Lira.png"),
     top: "14%",
     left: "6%",
     width: 220,
@@ -32,7 +35,7 @@ const CHARACTERS: FloatingCharacterConfig[] = [
   },
   {
     id: "kade",
-    src: "/assets/fighters/Kade.png",
+    src: withStorage("/assets/fighters/Kade.png"),
     top: "57%",
     left: "38%",
     width: 250,

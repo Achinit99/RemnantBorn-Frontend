@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react"
 
 const CINEMATIC_PLAYBACK_RATE = 0.5
+const storageUrl = (process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL ?? "").replace(/\/$/, "")
+const withStorage = (assetPath: string) => `${storageUrl}${assetPath}`
 
 export function CommunityBackgroundVideo() {
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -39,7 +41,7 @@ export function CommunityBackgroundVideo() {
         disablePictureInPicture
         style={{ transform: "translateZ(0)", backfaceVisibility: "hidden" }}
       >
-        <source src="/videos/bg-video.mp4" type="video/mp4" />
+        <source src={withStorage("/videos/bg-video.mp4")} type="video/mp4" />
       </video>
     </div>
   )
