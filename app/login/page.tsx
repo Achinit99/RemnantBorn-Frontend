@@ -18,8 +18,9 @@ import {
 } from "@/lib/auth"
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
+export const dynamic = 'force-dynamic'; // Prerendering Force Disable
+
 export default function LoginPage() {
-  const dynamic = 'force-dynamic';
   const searchParams = useSearchParams()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [email, setEmail] = useState("")
