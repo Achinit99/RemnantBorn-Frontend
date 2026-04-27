@@ -663,7 +663,7 @@
   pointer-events: none;
   position: absolute;
   inset-inline: -8%;
-  background-image: url('/assets/fighters/fog-layer.svg');
+  background-image: var(--fighter-fog-image);
   background-repeat: repeat-x;
   background-size: 760px auto;
   mix-blend-mode: screen;

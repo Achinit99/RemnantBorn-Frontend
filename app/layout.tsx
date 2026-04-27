@@ -4,6 +4,7 @@
  */
 import type { Metadata } from 'next'
 import { Cinzel, Cormorant_Garamond, Inter } from 'next/font/google'
+import type { CSSProperties } from 'react'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 
@@ -54,9 +55,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const storageUrl = (process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL ?? '').replace(/\/$/, '')
+
   return (
     <html lang="en">
-      <body className={`${cinzel.variable} ${cormorant.variable} ${inter.variable} antialiased`}>
+      <body
+        className={`${cinzel.variable} ${cormorant.variable} ${inter.variable} antialiased`}
+        style={{
+          '--fighter-fog-image': `url('${storageUrl}/assets/fighters/fog-layer.svg')`,
+        } as CSSProperties}
+      >
         {children}
         <Toaster position="top-right" />
       </body>

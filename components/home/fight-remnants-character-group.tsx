@@ -3,6 +3,9 @@
 import Image from "next/image"
 import { motion } from "framer-motion"
 
+const storageUrl = (process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL ?? "").replace(/\/$/, "")
+const withStorage = (assetPath: string) => `${storageUrl}${assetPath}`
+
 const handDustParticles = [
   { x: 0, driftX: -18, delay: 0, duration: 2.2, size: 5, opacity: 1 },
   { x: 6, driftX: -12, delay: 0.2, duration: 2.4, size: 4, opacity: 0.95 },
@@ -28,7 +31,7 @@ export function FightRemnantsCharacterGroup() {
           <div className="absolute inset-0">
             <div className="relative h-full w-full translate-x-[-8%] translate-y-[14%] sm:translate-x-[-6%]">
               <Image
-                src="/assets/characters/attack-rock.png"
+                src={withStorage("/assets/characters/attack-rock.png")}
                 alt="Attack rock"
                 fill
                 priority
@@ -46,7 +49,7 @@ export function FightRemnantsCharacterGroup() {
               style={{ transformOrigin: "38% 76%" }}
             >
               <Image
-                src="/assets/characters/boy-floting.png"
+                src={withStorage("/assets/characters/boy-floting.png")}
                 alt="Boy attacking from the rock"
                 fill
                 sizes="(max-width: 1024px) 90vw, 480px"
@@ -62,7 +65,7 @@ export function FightRemnantsCharacterGroup() {
           >
             <div className="relative h-full w-full translate-x-[10%] translate-y-[-22%] sm:translate-x-[11%] sm:translate-y-[-24%]">
               <Image
-                src="/assets/characters/girl_body.png"
+                src={withStorage("/assets/characters/girl_body.png")}
                 alt="Girl body"
                 fill
                 sizes="(max-width: 1024px) 90vw, 480px"
@@ -76,7 +79,7 @@ export function FightRemnantsCharacterGroup() {
                 style={{ transformOrigin: "18% 24%" }}
               >
                 <Image
-                  src="/assets/characters/girl-arm.png"
+                  src={withStorage("/assets/characters/girl-arm.png")}
                   alt="The Girl arm and staff"
                   fill
                   sizes="(max-width: 1024px) 90vw, 480px"

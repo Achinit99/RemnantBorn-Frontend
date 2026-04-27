@@ -15,6 +15,8 @@ import { authApi, getApiErrorMessage } from "@/lib/auth-api"
 const ctaButtonStyle = {
   background: "linear-gradient(145deg, rgba(82, 74, 52, 0.65) 0%, rgba(52, 47, 35, 0.75) 50%, rgba(35, 32, 25, 0.85) 100%)",
 }
+const storageUrl = (process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL ?? "").replace(/\/$/, "")
+const withStorage = (assetPath: string) => `${storageUrl}${assetPath}`
 
 export default function SignupPage() {
   const router = useRouter()
@@ -78,8 +80,8 @@ export default function SignupPage() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#020b0d] text-white">
       <video autoPlay loop muted playsInline preload="metadata" className="absolute inset-0 h-full w-full object-contain object-center">
-        <source src="/videos/hero-bg.mp4" type="video/mp4" />
-        <source src="/videos/bg-video.mp4" type="video/mp4" />
+        <source src={withStorage("/videos/hero-bg.mp4")} type="video/mp4" />
+        <source src={withStorage("/videos/bg-video.mp4")} type="video/mp4" />
       </video>
 
       <div className="absolute inset-0 bg-[radial-gradient(45%_65%_at_52%_55%,rgba(161,151,84,0.26)_0%,rgba(24,43,35,0.1)_45%,rgba(2,10,13,0.56)_100%)]" />
@@ -145,7 +147,7 @@ export default function SignupPage() {
         <main className="relative mx-auto flex w-full max-w-4xl flex-1 items-center justify-center px-6 pb-12 text-center md:px-12 lg:px-16">
           <div className="pointer-events-none absolute bottom-0 left-[-2.5rem] hidden w-[230px] opacity-85 lg:block xl:w-[280px]">
             <Image
-              src="/assets/fighters/Lira.png"
+              src={withStorage("/assets/fighters/Lira.png")}
               alt=""
               width={280}
               height={386}
@@ -156,7 +158,7 @@ export default function SignupPage() {
 
           <div className="pointer-events-none absolute bottom-0 right-[-2.5rem] hidden w-[230px] opacity-85 lg:block xl:w-[280px]">
             <Image
-              src="/assets/fighters/Kade.png"
+              src={withStorage("/assets/fighters/Kade.png")}
               alt=""
               width={280}
               height={386}
@@ -168,7 +170,7 @@ export default function SignupPage() {
           <div className="w-full">
             <div className="mx-auto w-full max-w-[18.75rem] md:max-w-[22.5rem] lg:max-w-[26rem]">
               <Image
-                src="/assets/brand/game-name.png"
+                src={withStorage("/assets/brand/game-name.png")}
                 alt="Remnantborn The Last Tear"
                 width={589}
                 height={182}

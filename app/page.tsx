@@ -12,15 +12,18 @@ import { motion, AnimatePresence, useMotionTemplate, useMotionValue, useScroll, 
 import Lenis from "@studio-freight/lenis"
 import { FightRemnantsCharacterGroup } from "@/components/home/fight-remnants-character-group"
 
+const storageUrl = (process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL ?? "").replace(/\/$/, "")
+const withStorage = (assetPath: string) => `${storageUrl}${assetPath}`
+
 type FighterParallax = Record<string, { x: number; y: number }>
 
 const discoverFilmFrames = [
-  "/assets/old-film-strip/film1.jpeg",
-  "/assets/old-film-strip/film2.jpeg",
-  "/assets/old-film-strip/film3.jpeg",
-  "/assets/old-film-strip/film4.jpeg",
-  "/assets/old-film-strip/film5.jpeg",
-  "/assets/old-film-strip/film6.jpeg",
+  withStorage("/assets/old-film-strip/film1.jpeg"),
+  withStorage("/assets/old-film-strip/film2.jpeg"),
+  withStorage("/assets/old-film-strip/film3.jpeg"),
+  withStorage("/assets/old-film-strip/film4.jpeg"),
+  withStorage("/assets/old-film-strip/film5.jpeg"),
+  withStorage("/assets/old-film-strip/film6.jpeg"),
 ]
 
 const remnantFighters = [
@@ -28,7 +31,7 @@ const remnantFighters = [
     key: "lira",
     name: "Lira",
     title: "The Verdant Witch",
-    image: "/assets/fighters/Lira.png",
+    image: withStorage("/assets/fighters/Lira.png"),
     auraClass: "fighter-aura-lira",
     floatClass: "fighter-float-left",
     stats: [
@@ -41,7 +44,7 @@ const remnantFighters = [
     key: "zoory",
     name: "Zoory",
     title: "The Astral Ranger",
-    image: "/assets/fighters/Zoory.png",
+    image: withStorage("/assets/fighters/Zoory.png"),
     auraClass: "fighter-aura-zoory",
     floatClass: "fighter-float-center",
     stats: [
@@ -54,7 +57,7 @@ const remnantFighters = [
     key: "kade",
     name: "Kade",
     title: "The Shadow Blademaster",
-    image: "/assets/fighters/Kade.png",
+    image: withStorage("/assets/fighters/Kade.png"),
     auraClass: "fighter-aura-kade",
     floatClass: "fighter-float-right",
     stats: [
@@ -473,8 +476,8 @@ export default function RemnantbornLanding() {
         preload="metadata"
         className="pointer-events-none absolute inset-0 h-screen w-full object-cover object-center"
       >
-      <source src="/videos/hero-bg.mp4" type="video/mp4" />
-      <source src="/videos/bg-video.mp4" type="video/mp4" />
+      <source src={withStorage("/videos/hero-bg.mp4")} type="video/mp4" />
+      <source src={withStorage("/videos/bg-video.mp4")} type="video/mp4" />
       {/* if video not view */}
       Your browser does not support the video tag.
       </video>
@@ -552,7 +555,7 @@ export default function RemnantbornLanding() {
                     style={{ filter: introPhase !== "loading" ? "drop-shadow(0 0 16px rgba(157, 214, 255, 0.6))" : undefined }}
                   >
                     <Image
-                      src="/assets/brand/logo/main-tear.png"
+                      src={withStorage("/assets/brand/logo/main-tear.png")}
                       alt="Main Tear"
                       fill
                       priority
@@ -577,7 +580,7 @@ export default function RemnantbornLanding() {
                     }
                   >
                     <Image
-                      src="/assets/brand/logo/vine-circle.png"
+                      src={withStorage("/assets/brand/logo/vine-circle.png")}
                       alt=""
                       fill
                       priority
@@ -603,7 +606,7 @@ export default function RemnantbornLanding() {
                   >
                     <div className="absolute left-1/2 top-1/2 h-[90%] w-[90%] -translate-x-1/2 -translate-y-1/2">
                       <Image
-                        src="/assets/brand/logo/fly.png"
+                        src={withStorage("/assets/brand/logo/fly.png")}
                         alt=""
                         fill
                         priority
@@ -626,7 +629,7 @@ export default function RemnantbornLanding() {
                     }}
                   >
                     <Image
-                      src="/assets/brand/logo/blue-gems.png"
+                      src={withStorage("/assets/brand/logo/blue-gems.png")}
                       alt=""
                       fill
                       priority
@@ -642,15 +645,7 @@ export default function RemnantbornLanding() {
                     animate={{ x: 0, y: 0, rotate: 0, opacity: 1, scale: 1 }}
                     transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.14 }}
                   >
-                    <Image
-                      src="/assets/brand/logo/tear2.png"
-                      alt="Tear Fragment"
-                      fill
-                      priority
-                      quality={100}
-                      sizes="(max-width: 768px) 420px, 500px"
-                      className="object-contain"
-                    />
+                    {/* Tear fragment image removed by request; kept layout intact */}
                   </motion.div>
 
                   <motion.div
@@ -660,7 +655,7 @@ export default function RemnantbornLanding() {
                     transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.2 }}
                   >
                     <Image
-                      src="/assets/brand/logo/central.png"
+                      src={withStorage("/assets/brand/logo/central.png")}
                       alt="Central Sigil"
                       fill
                       priority
@@ -681,7 +676,7 @@ export default function RemnantbornLanding() {
                     transition={{ duration: 1.15, times: [0, 0.62, 1], ease: [0.22, 1, 0.36, 1], delay: 0.22 }}
                   >
                     <Image
-                      src="/assets/brand/logo/game-title.png"
+                      src={withStorage("/assets/brand/logo/game-title.png")}
                       alt="Remnantborn The Last Tear"
                       fill
                       priority
@@ -767,7 +762,7 @@ export default function RemnantbornLanding() {
               whileTap={{ scale: 0.97 }}
             >
               <Image
-                src="/assets/brand/game-name.png"
+                src={withStorage("/assets/brand/game-name.png")}
                 alt="Remnantborn The Last Tear"
                 width={589}
                 height={182}
@@ -858,7 +853,7 @@ export default function RemnantbornLanding() {
           >
             <div className="brand-floating-glow">
               <Image
-                src="/assets/brand/game-name.png"
+                src={withStorage("/assets/brand/game-name.png")}
                 alt="Remnantborn The Last Tear"
                 width={589}
                 height={182}
@@ -927,7 +922,7 @@ export default function RemnantbornLanding() {
             aria-hidden="true"
           >
             <Image
-              src="/assets/fighters/Zoory.png"
+              src={withStorage("/assets/fighters/Zoory.png")}
               alt=""
               width={350}
               height={484}
@@ -987,7 +982,7 @@ export default function RemnantbornLanding() {
 
               <div className="pointer-events-none absolute -bottom-[3rem] right-[-0.75rem] h-64 w-64 translate-y-1/4 sm:-bottom-[4.5rem] sm:right-[-2.75rem] sm:h-96 sm:w-96 lg:-bottom-[6.5rem] lg:right-[-6.25rem] lg:h-[34rem] lg:w-[34rem]">
                 <Image
-                  src="/assets/characters/about1.png"
+                  src={withStorage("/assets/characters/about1.png")}
                   alt="Monstera leaf"
                   fill
                   sizes="(max-width: 640px) 256px, (max-width: 1024px) 384px, 544px"
@@ -1016,8 +1011,8 @@ export default function RemnantbornLanding() {
           preload="metadata"
           className="absolute inset-0 h-full w-full object-cover object-center"
         >
-          <source src="/videos/hero-bg.mp4" type="video/mp4" />
-          <source src="/videos/bg-video.mp4" type="video/mp4" />
+          <source src={withStorage("/videos/hero-bg.mp4")} type="video/mp4" />
+          <source src={withStorage("/videos/bg-video.mp4")} type="video/mp4" />
         </video>
 
         <div className="absolute inset-0 bg-[linear-gradient(160deg,rgba(5,19,18,0.72)_0%,rgba(5,12,13,0.82)_45%,rgba(3,11,13,0.76)_100%)] backdrop-blur-[2px]" />
@@ -1083,7 +1078,7 @@ export default function RemnantbornLanding() {
 
             <div className="pointer-events-none absolute z-[3] -bottom-[3.25rem] right-[-0.75rem] h-56 w-56 sm:-bottom-[4.25rem] sm:right-[-2.75rem] sm:h-80 sm:w-80 lg:-bottom-[6rem] lg:right-[-6.25rem] lg:h-[26rem] lg:w-[26rem]">
               <Image
-                src="/assets/old-film-strip/leaf2.png"
+                src={withStorage("/assets/old-film-strip/leaf2.png")}
                 alt=""
                 fill
                 sizes="(max-width: 640px) 224px, (max-width: 1024px) 320px, 416px"
@@ -1111,7 +1106,7 @@ export default function RemnantbornLanding() {
           <div className="relative mt-12 overflow-hidden rounded-[20px] border border-[#A6A921]/30 bg-[radial-gradient(circle_at_center,rgba(166,169,33,0.18)_0%,rgba(5,19,18,0.92)_58%)] px-6 py-10 sm:px-8 sm:py-12 lg:px-12 lg:py-14">
             <div className="pointer-events-none absolute inset-x-0 bottom-[3%] z-[1] h-[48%] overflow-hidden sm:bottom-[4%] sm:h-[52%] md:h-[56%] lg:bottom-[5%] lg:h-[60%] xl:h-[64%]">
               <Image
-                src="/assets/fighters/fighters-rock.png"
+                src={withStorage("/assets/fighters/fighters-rock.png")}
                 alt=""
                 fill
                 sizes="(max-width: 768px) 100vw, (max-width: 1280px) 92vw, 1200px"
@@ -1258,8 +1253,8 @@ export default function RemnantbornLanding() {
           preload="metadata"
           className="absolute inset-0 h-full w-full object-contain object-center"
         >
-          <source src="/videos/hero-bg.mp4" type="video/mp4" />
-          <source src="/videos/bg-video.mp4" type="video/mp4" />
+          <source src={withStorage("/videos/hero-bg.mp4")} type="video/mp4" />
+          <source src={withStorage("/videos/bg-video.mp4")} type="video/mp4" />
         </video>
 
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(5,12,13,0.62)_0%,rgba(3,11,13,0.55)_45%,rgba(13,20,13,0.25)_100%)]" />
@@ -1295,7 +1290,7 @@ export default function RemnantbornLanding() {
                   className="brand-floating-glow mx-auto block w-[18.75rem] cursor-pointer md:mx-0 md:w-[22.5rem]"
                 >
                   <Image
-                    src="/assets/brand/game-name.png"
+                    src={withStorage("/assets/brand/game-name.png")}
                     alt="Remnantborn The Last Tear"
                     width={589}
                     height={182}
