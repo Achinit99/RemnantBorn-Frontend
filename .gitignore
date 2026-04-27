@@ -13,7 +13,9 @@
 
 # Ignore images and character assets
 public/assets/
-# public/
+# Ignore all videos in public folder
+public/videos/
+public/images/
 
 # testing
 /coverage
