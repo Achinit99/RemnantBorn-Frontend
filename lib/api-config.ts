@@ -3,6 +3,6 @@
  * Why: Keeps backend host configuration in one place and makes environment overrides predictable.
  */
 export function getApiBaseUrl(): string {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000"
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
   return apiUrl.replace(/\/$/, "")
 }
