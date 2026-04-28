@@ -28,8 +28,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_SUPABASE_STORAGE_URL
 ENV NEXT_PUBLIC_SUPABASE_STORAGE_URL=$NEXT_PUBLIC_SUPABASE_STORAGE_URL
 
-RUN echo "NEXT_PUBLIC_API_URL=http://139.59.222.212" > .env.production
-RUN npm run build
+RUN grep -lR "http://localhost:4000" . | xargs sed -i 's|http://localhost:4000|http://139.59.222.212|g'
 
 # Next.js build
 RUN npm run build
