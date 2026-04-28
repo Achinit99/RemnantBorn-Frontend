@@ -21,7 +21,6 @@ public/videos/
 
 # next.js
 /.next/
-.env
 .env.local
 dist/
 build/
@@ -43,13 +42,6 @@ out/
 # NestJS Build files
 dist/
 backend/dist/
-
-# Environment Variables 
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
 # debug
 npm-debug.log*
