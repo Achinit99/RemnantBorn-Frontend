@@ -37,7 +37,7 @@ WORKDIR /usr/share/nginx/html
 
 RUN rm -rf ./*
 
-COPY --from=builder /app/out /usr/share/nginx/html/
+COPY --from=builder /app/out/ ./
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
