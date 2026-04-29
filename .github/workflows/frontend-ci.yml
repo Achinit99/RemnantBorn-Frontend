@@ -27,18 +27,18 @@ jobs:
           docker build \
             --build-arg NEXT_PUBLIC_SUPABASE_STORAGE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_STORAGE_URL }} \
             --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
-            -t ${{ secrets.DOCKERHUB_USERNAME }}/gaming-frontend:v1.0.3 .
-          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/gaming-frontend:v1.0.3 ${{ secrets.DOCKERHUB_USERNAME }}/gaming-frontend:${{ github.sha }}
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/gaming-frontend:v1.0.4 .
+          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/gaming-frontend:v1.0.4 ${{ secrets.DOCKERHUB_USERNAME }}/gaming-frontend:${{ github.sha }}
 
       - name: Scan Image with Trivy (Security)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/gaming-frontend:v1.0.3'
+          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/gaming-frontend:v1.0.4'
           format: 'table'
           exit-code: '0' 
           severity: 'CRITICAL,HIGH'
 
       - name: Push Image to Docker Hub
         run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/gaming-frontend:v1.0.3
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/gaming-frontend:v1.0.4
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/gaming-frontend:${{ github.sha }}
