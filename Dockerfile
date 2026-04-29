@@ -29,14 +29,16 @@ ENV NEXT_PUBLIC_SUPABASE_STORAGE_URL=$NEXT_PUBLIC_SUPABASE_STORAGE_URL
 # Next.js Static Build 
 RUN npm run build
 
-# Stage 3: Runner stage 
+# Stage 3: Runner stage
 FROM nginx:alpine
+
 WORKDIR /usr/share/nginx/html
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+RUN rm -rf ./*
 
-# Next.js build static files (out folder) Nginx-copy 
 COPY --from=builder /app/out .
+
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
