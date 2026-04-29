@@ -30,16 +30,22 @@ ENV NEXT_PUBLIC_SUPABASE_STORAGE_URL=$NEXT_PUBLIC_SUPABASE_STORAGE_URL
 RUN npm run build
 
 # Stage 3: Runner stage
-FROM nginx:alpine
+FROM nginx:alpine AS runner
 
-# Nginx default directory 
+RUN mkdir -p /usr/share/nginx/html
+
+RUN chmod -R 755 /usr/share/nginx/html
+
 WORKDIR /usr/share/nginx/html
 
 RUN rm -rf ./*
 
-COPY --from=builder /app/out/ ./
+COPY --from=builder /app/out .
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+RUN chown -R nginx:nginx /usr/share/nginx/html
+
 EXPOSE 80
+
 CMD ["nginx", "-g", "daemon off;"]
