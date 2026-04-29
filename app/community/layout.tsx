@@ -2,26 +2,60 @@
  * What: Shared layout for all community pages with auth guard and navigation shell.
  * Why: Protects private routes and keeps the community visual frame consistent.
  */
-import { cookies } from "next/headers"
-import { redirect } from "next/navigation"
+"use client"
+
+import { useEffect, useMemo, useState } from "react"
+import { usePathname, useRouter } from "next/navigation"
 
 import { communityNavLinks } from "@/app/community/mock-data"
 import { CommunityBackgroundVideo } from "@/components/community/community-background-video"
 import { CommunityNavbar } from "@/components/community/community-navbar"
 import { CommunityNotificationProvider } from "@/components/community/community-notification-provider"
-import { buildLoginRedirectPath, hasAuthCookie } from "@/lib/auth"
+import { AUTH_COOKIE_CANDIDATES, buildLoginRedirectPath } from "@/lib/auth"
 
-export default async function CommunityLayout({
+function hasAuthCookieFromDocumentCookie(cookieString: string): boolean {
+  if (!cookieString) {
+    return false
+  }
+
+  const cookiePairs = cookieString.split(";").map((entry) => entry.trim())
+  const cookieNames = new Set(cookiePairs.map((entry) => entry.split("=")[0]))
+
+  return AUTH_COOKIE_CANDIDATES.some((cookieName) => cookieNames.has(cookieName))
+}
+
+export default function CommunityLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  // Server-side auth gate before rendering any community content.
-  const cookieStore = await cookies()
-  const isAuthenticated = hasAuthCookie(cookieStore)
+  const pathname = usePathname()
+  const router = useRouter()
+  const loginRedirectPath = useMemo(() => buildLoginRedirectPath(pathname || "/community"), [pathname])
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    const authenticated = hasAuthCookieFromDocumentCookie(document.cookie)
+
+    setIsAuthenticated(authenticated)
+    setIsCheckingAuth(false)
+
+    if (!authenticated) {
+      router.replace(loginRedirectPath)
+    }
+  }, [loginRedirectPath, router])
+
+  if (isCheckingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#031014] text-white">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#1c2f33] border-t-[#ff620f]" aria-label="Checking session" />
+      </div>
+    )
+  }
 
   if (!isAuthenticated) {
-    redirect(buildLoginRedirectPath("/community"))
+    return null
   }
 
   return (
