@@ -2,7 +2,6 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-# Clean install for production
 RUN npm ci
 
 # Stage 2: Build the application
@@ -17,35 +16,28 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder_key
 
+ENV NEXT_PUBLIC_API_URL=/api
+
 # For Build Prerendering errors
 ENV NEXT_DISABLE_LINT=1
 ENV NEXT_SKIP_TYPECHECK=1
 
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-
-# Build-time argument (Supabase URL)
+# Supabase Storage URL 
 ARG NEXT_PUBLIC_SUPABASE_STORAGE_URL
 ENV NEXT_PUBLIC_SUPABASE_STORAGE_URL=$NEXT_PUBLIC_SUPABASE_STORAGE_URL
 
-RUN grep -lR "http://localhost:4000" . | xargs sed -i 's|http://localhost:4000|http://163.47.8.39|g'
-
-# Next.js build
+# Next.js Static Build 
 RUN npm run build
 
-# Stage 3: Runner stage
-FROM node:20-alpine AS runner
-WORKDIR /app
+# Stage 3: Runner stage 
+FROM nginx:alpine
+WORKDIR /usr/share/nginx/html
 
-ENV NODE_ENV=production
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Only copy necessary files to keep the image small
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
+# Next.js build static files (out folder) Nginx-copy 
+COPY --from=builder /app/out .
 
-EXPOSE 3000
+EXPOSE 80
 
-# Start Next.js
-CMD ["npm", "start"]
+CMD ["nginx", "-g", "daemon off;"]

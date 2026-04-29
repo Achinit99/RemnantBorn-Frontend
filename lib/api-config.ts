@@ -3,5 +3,5 @@
  * Why: Keeps backend host configuration in one place and makes environment overrides predictable.
  */
 export function getApiBaseUrl(): string {
-  return "http://163.47.8.39"
+  return process.env.NEXT_PUBLIC_API_URL ?? "/api"
 }
