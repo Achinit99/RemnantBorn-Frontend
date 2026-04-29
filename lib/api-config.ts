@@ -3,5 +3,5 @@
  * Why: Keeps backend host configuration in one place and makes environment overrides predictable.
  */
 export function getApiBaseUrl(): string {
-  return "http://139.59.222.212"
+  return "http://163.47.8.39"
 }
